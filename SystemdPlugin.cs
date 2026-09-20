@@ -6,7 +6,7 @@ namespace LoupixDeck.Plugin.Systemd;
 /// Monitors and controls systemd units over the native D-Bus API of the user and the system
 /// instance. It never runs systemctl, never asks for a password and never starts sudo.
 /// </summary>
-public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
+public sealed class SystemdPlugin : LoupixPlugin, IMenuContributor, IPluginSettingsPage
 {
     private readonly List<IPluginCommand> _commands = [];
 
@@ -15,6 +15,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
     private UnitRegistry? _registry;
     private SystemdSettingsPage? _settingsPage;
     private SystemdStateBinder? _binder;
+    private SystemdMenu? _menu;
 
     /// <summary>True while the system instance is served, so a changed setting can be noticed.</summary>
     private bool _systemDomainIncluded;
@@ -59,6 +60,8 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
 
             _binder = new SystemdStateBinder(host, _registry!, slots, displayCommandNames);
             _binder.Start();
+
+            _menu = new SystemdMenu(_registry!, settings);
         }
         catch (Exception ex)
         {
@@ -79,6 +82,18 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
             Section = CommandGroupSection.Plugins
         }
     ];
+
+    public async Task<IReadOnlyList<MenuNode>> GetMenuNodes(ButtonTargets target)
+    {
+        SystemdMenu? menu = _menu;
+
+        if (menu is null)
+        {
+            return [];
+        }
+
+        return await menu.BuildAsync().ConfigureAwait(false);
+    }
 
     public IReadOnlyList<PluginSettingDescriptor> SettingsSchema =>
         _settingsPage?.BuildSchema() ?? [];
@@ -122,6 +137,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
     {
         _binder?.Dispose();
         _binder = null;
+        _menu = null;
         _commands.Clear();
         _registry?.Dispose();
         _registry = null;

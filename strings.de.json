@@ -123,5 +123,9 @@
   "Removed from favorites": "Aus Favoriten entfernt",
   "Not a favorite": "Kein Favorit",
   "Systemd Units": "Systemd-Units",
-  "No favorite units": "Keine favorisierten Units"
+  "No favorite units": "Keine favorisierten Units",
+  "Favorites": "Favoriten",
+  "Favorite Slots": "Favoriten-Plätze",
+  "User Units": "Benutzer-Units",
+  "System Units": "System-Units"
 }
