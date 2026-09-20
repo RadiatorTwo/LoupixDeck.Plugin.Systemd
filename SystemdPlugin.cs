@@ -14,6 +14,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
     private SystemdSettings? _settings;
     private UnitRegistry? _registry;
     private SystemdSettingsPage? _settingsPage;
+    private SystemdStateBinder? _binder;
 
     /// <summary>True while the system instance is served, so a changed setting can be noticed.</summary>
     private bool _systemDomainIncluded;
@@ -41,7 +42,21 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
             _settingsPage = new SystemdSettingsPage(settings, _registry!, host);
 
             _commands.AddRange(UnitActionCommands.Create(_registry!, settings));
-            _commands.AddRange(SystemdDisplayCommands.Create(_registry!, settings));
+
+            IEnumerable<IPluginCommand> displays = SystemdDisplayCommands.Create(_registry!, settings);
+            List<string> displayCommandNames = [];
+
+            foreach (IPluginCommand display in displays)
+            {
+                _commands.Add(display);
+                displayCommandNames.Add(display.Descriptor.CommandName);
+            }
+
+            IReadOnlyList<FavoriteSlotCommand> slots = FavoriteSlotCommands.Create(_registry!, settings);
+            _commands.AddRange(slots);
+
+            _binder = new SystemdStateBinder(host, _registry!, slots, displayCommandNames);
+            _binder.Start();
         }
         catch (Exception ex)
         {
@@ -82,6 +97,9 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
         registry.TimeoutMilliseconds = settings.DBusTimeoutMilliseconds;
         registry.TrackAll(settings.Favorites);
 
+        // The favorites may now point at other units, so every slot button is brought up to date.
+        _binder?.ReplayAll();
+
         if (settings.ShowSystemUnits == _systemDomainIncluded)
         {
             return;
@@ -100,6 +118,8 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
 
     public override void Shutdown()
     {
+        _binder?.Dispose();
+        _binder = null;
         _commands.Clear();
         _registry?.Dispose();
         _registry = null;
