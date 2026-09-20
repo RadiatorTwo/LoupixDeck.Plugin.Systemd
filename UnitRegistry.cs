@@ -71,10 +71,43 @@ internal sealed class UnitRegistry : IDisposable
     /// <summary>Connects every domain and subscribes to its manager. Failures leave a domain inactive.</summary>
     public async Task StartAsync()
     {
-        foreach (DomainContext domain in _domains.Values)
+        foreach (DomainContext domain in _domains.Values.ToArray())
         {
             await domain.Connection.ConnectAsync().ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Turns the system instance on or off while the plugin runs. Off closes the system bus and
+    /// forgets everything read from it; on opens it and reads the tracked units again. The
+    /// registry itself stays the same object, because the commands hold on to it.
+    /// </summary>
+    public async Task SetSystemDomainEnabledAsync(bool enabled)
+    {
+        if (_disposed || enabled == _domains.ContainsKey(UnitDomain.System))
+        {
+            return;
+        }
+
+        if (!enabled)
+        {
+            if (_domains.Remove(UnitDomain.System, out DomainContext? removed))
+            {
+                removed.Jobs.Dispose();
+                removed.Manager.Dispose();
+                removed.Connection.Dispose();
+            }
+
+            foreach (UnitId id in _tracked.Keys.Where(id => id.Domain == UnitDomain.System))
+            {
+                _units.TryRemove(id, out _);
+            }
+
+            return;
+        }
+
+        DomainContext context = AddDomain(UnitDomain.System);
+        await context.Connection.ConnectAsync().ConfigureAwait(false);
     }
 
     /// <summary>True while the manager of that domain can be reached.</summary>
@@ -264,7 +297,7 @@ internal sealed class UnitRegistry : IDisposable
         _domains.Clear();
     }
 
-    private void AddDomain(UnitDomain domain)
+    private DomainContext AddDomain(UnitDomain domain)
     {
         SystemdConnection connection = new(domain, _logger);
         SystemdManager manager = new(connection, _logger);
@@ -279,6 +312,7 @@ internal sealed class UnitRegistry : IDisposable
         manager.JobRemoved += (jobPath, result) => context.Jobs.Complete(jobPath, result);
 
         _domains[domain] = context;
+        return context;
     }
 
     private void OnConnectionReady(DomainContext context)

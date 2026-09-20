@@ -8,6 +8,8 @@ namespace LoupixDeck.Plugin.Systemd;
 /// </summary>
 public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
 {
+    private readonly List<IPluginCommand> _commands = [];
+
     private IPluginHost? _host;
     private SystemdSettings? _settings;
     private UnitRegistry? _registry;
@@ -37,6 +39,8 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
 
             StartRegistry(settings);
             _settingsPage = new SystemdSettingsPage(settings, _registry!, host);
+
+            _commands.AddRange(UnitActionCommands.Create(_registry!, settings));
         }
         catch (Exception ex)
         {
@@ -45,7 +49,18 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
         }
     }
 
-    public override IEnumerable<IPluginCommand> GetCommands() => [];
+    public override IEnumerable<IPluginCommand> GetCommands() => _commands;
+
+    public override IReadOnlyList<CommandGroupDescriptor> GetCommandGroups() =>
+    [
+        new CommandGroupDescriptor
+        {
+            Group = SystemdCommands.Group,
+            Icon = SystemdCommands.CogGlyph,
+            Description = "Start, stop and watch systemd units",
+            Section = CommandGroupSection.Plugins
+        }
+    ];
 
     public IReadOnlyList<PluginSettingDescriptor> SettingsSchema =>
         _settingsPage?.BuildSchema() ?? [];
@@ -56,40 +71,35 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
     public void OnSettingsSaved()
     {
         SystemdSettings? settings = _settings;
-
-        if (settings is null)
-        {
-            return;
-        }
-
-        // Turning the system instance on or off decides whether the system bus is opened at all,
-        // so that switch is the one change the registry cannot absorb.
-        if (settings.ShowSystemUnits != _systemDomainIncluded)
-        {
-            _registry?.Dispose();
-            StartRegistry(settings);
-
-            if (_host is not null)
-            {
-                _settingsPage = new SystemdSettingsPage(settings, _registry!, _host);
-            }
-
-            return;
-        }
-
         UnitRegistry? registry = _registry;
 
-        if (registry is null)
+        if (settings is null || registry is null)
         {
             return;
         }
 
         registry.TimeoutMilliseconds = settings.DBusTimeoutMilliseconds;
         registry.TrackAll(settings.Favorites);
+
+        if (settings.ShowSystemUnits == _systemDomainIncluded)
+        {
+            return;
+        }
+
+        // Opening or closing the system bus talks to D-Bus, so it must not hold up the settings
+        // dialog. The registry object stays the same, because every command holds on to it.
+        _systemDomainIncluded = settings.ShowSystemUnits;
+        _ = Task.Run(async () =>
+        {
+            await registry.SetSystemDomainEnabledAsync(_systemDomainIncluded).ConfigureAwait(false);
+            registry.TimeoutMilliseconds = settings.DBusTimeoutMilliseconds;
+            registry.TrackAll(settings.Favorites);
+        });
     }
 
     public override void Shutdown()
     {
+        _commands.Clear();
         _registry?.Dispose();
         _registry = null;
         _settingsPage = null;
