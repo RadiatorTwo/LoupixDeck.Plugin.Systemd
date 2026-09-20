@@ -13,8 +13,9 @@ Linux only.
 - Runtime actions on a unit: start, stop, restart, reload, toggle and reset-failed. Each one waits
   for the systemd job it created, so a button reports what actually happened rather than that the
   request was accepted.
-- Eleven touch displays for one unit each: status, name, description, active state, sub state,
-  load state, unit file state, uptime, main process, last result and instance.
+- Ten touch displays for one unit each: status, name, description, sub state, load state, unit
+  file state, uptime, main process, last result and instance. The status button prints the unit
+  name above the state; setting its second value to `0` leaves the name out.
 - Ten favorite slots whose button state follows the unit: `Inactive`, `Activating`, `Active`,
   `Deactivating`, `Reloading`, `Failed`, `NotFound` and `PermissionDenied`.
 - A touch folder listing the favorite units with their state and a colour per state.
@@ -29,8 +30,12 @@ A unit is stored as `instance:name`, for example `user:pipewire.service` or
 and a name without a type suffix is read as a service.
 
 The command menu walks to a unit — instance, letter group, unit — and bakes it into the command.
-Every unit in the menu also offers **Add Unit to Favorites**, which is how the favorites list is
-built without typing unit names.
+A menu entry is named after its unit, for example `pipewire — Restart`, so a button dropped from
+it carries the unit name as its caption. Every unit in the menu also offers **Add to Favorites**,
+which is how the favorites list is built without typing unit names.
+
+No command declares an icon, so dropping one on a touch button writes a plain caption instead of a
+symbol with a label underneath.
 
 ## Permissions
 
