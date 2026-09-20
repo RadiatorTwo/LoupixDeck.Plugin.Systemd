@@ -1,0 +1,20 @@
+name: Release Plugin
+
+# Publishing a GitHub release (tag vX.Y.Z matching plugin.json) builds the plugin and attaches the
+# Plugin Store files to it: the zip, plugin.json and SHA256SUMS. The shared workflow lives in the
+# Plugin SDK repository. A manual run only builds the files as an artifact.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    uses: RadiatorTwo/LoupixDeck.PluginSdk/.github/workflows/plugin-release.yml@master
+    with:
+      # The SDK version this plugin references is published on nuget.org, so the workflow does not
+      # have to check the SDK out and build it into a local folder feed.
+      build-sdk: false

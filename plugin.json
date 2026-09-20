@@ -1,0 +1,12 @@
+{
+  "id": "systemd",
+  "name": "Systemd",
+  "version": "1.0.0",
+  "sdkVersion": "1.24",
+  "entryAssembly": "LoupixDeck.Plugin.Systemd.dll",
+  "platform": "All",
+  "author": "",
+  "description": "",
+  "projectUrl": "",
+  "iconFile": ""
+}
