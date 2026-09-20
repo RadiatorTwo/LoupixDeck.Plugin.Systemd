@@ -125,5 +125,15 @@
   "Favorite Slots": "Favoriten-Plätze",
   "User Units": "Benutzer-Units",
   "System Units": "System-Units",
-  "Show what the unit is doing, with its name above the state. Set the second value to 0 to leave the name out.": "Zeigt, was die Unit tut, mit ihrem Namen über dem Zustand. Setzen Sie den zweiten Wert auf 0, um den Namen wegzulassen."
+  "Show what the unit is doing, with its name above the state. Set the second value to 0 to leave the name out.": "Zeigt, was die Unit tut, mit ihrem Namen über dem Zustand. Setzen Sie den zweiten Wert auf 0, um den Namen wegzulassen.",
+  "Toggle": "Umschalten",
+  "Start": "Starten",
+  "Stop": "Stoppen",
+  "Restart": "Neu starten",
+  "Reload": "Neu laden",
+  "Reset Failed": "Fehler zurücksetzen",
+  "Status": "Status",
+  "Uptime": "Laufzeit",
+  "Add to Favorites": "Zu Favoriten",
+  "Remove from Favorites": "Aus Favoriten"
 }

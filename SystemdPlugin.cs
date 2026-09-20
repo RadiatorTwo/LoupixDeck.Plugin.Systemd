@@ -61,7 +61,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IMenuContributor, IPluginSetti
             _binder = new SystemdStateBinder(host, _registry!, slots, displayCommandNames);
             _binder.Start();
 
-            _menu = new SystemdMenu(_registry!, settings);
+            _menu = new SystemdMenu(_registry!, settings, host);
         }
         catch (Exception ex)
         {

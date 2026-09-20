@@ -12,7 +12,7 @@ namespace LoupixDeck.Plugin.Systemd;
 /// listing rather than from a fresh call.
 /// </para>
 /// </summary>
-internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings settings)
+internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings settings, IPluginHost host)
 {
     /// <summary>How many units go into one first-letter group before it is split.</summary>
     private const int GroupSize = 10;
@@ -153,8 +153,16 @@ internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings setting
         return new MenuNode { Name = name, CommandName = string.Empty, Children = groups };
     }
 
-    /// <summary>The actions offered for one unit, each with the unit baked into its parameter.</summary>
-    private static MenuNode BuildUnitNode(UnitId id, string description)
+    /// <summary>
+    /// The actions offered for one unit, each with the unit baked into its parameter.
+    /// <para>
+    /// A leaf's name becomes the caption of the button it is dropped on, so it leads with the unit:
+    /// a button reading "Toggle Unit" says nothing about which unit it toggles. The name is built
+    /// here rather than left to the host, because the host can only translate a whole node name and
+    /// a composed one would never match a translation key.
+    /// </para>
+    /// </summary>
+    private MenuNode BuildUnitNode(UnitId id, string description)
     {
         Dictionary<string, string> parameters = new(StringComparer.Ordinal)
         {
@@ -168,18 +176,20 @@ internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings setting
             [SystemdCommands.ShowNameParameter] = SystemdCommands.SwitchOn
         };
 
+        string unit = ShortName(id.Name);
+
         List<MenuNode> actions =
         [
-            new() { Name = "Toggle Unit", CommandName = SystemdCommands.Toggle, Parameters = parameters },
-            new() { Name = "Start Unit", CommandName = SystemdCommands.Start, Parameters = parameters },
-            new() { Name = "Stop Unit", CommandName = SystemdCommands.Stop, Parameters = parameters },
-            new() { Name = "Restart Unit", CommandName = SystemdCommands.Restart, Parameters = parameters },
-            new() { Name = "Reload Unit", CommandName = SystemdCommands.Reload, Parameters = parameters },
-            new() { Name = "Reset Failed Unit", CommandName = SystemdCommands.ResetFailed, Parameters = parameters },
-            new() { Name = "Unit Status", CommandName = SystemdCommands.Prefix + "UnitStatus", Parameters = statusParameters },
-            new() { Name = "Unit Uptime", CommandName = SystemdCommands.Prefix + "UnitUptime", Parameters = parameters },
-            new() { Name = "Add Unit to Favorites", CommandName = SystemdCommands.AddFavorite, Parameters = parameters },
-            new() { Name = "Remove Unit from Favorites", CommandName = SystemdCommands.RemoveFavorite, Parameters = parameters }
+            new() { Name = Label(unit, "Toggle"), CommandName = SystemdCommands.Toggle, Parameters = parameters },
+            new() { Name = Label(unit, "Start"), CommandName = SystemdCommands.Start, Parameters = parameters },
+            new() { Name = Label(unit, "Stop"), CommandName = SystemdCommands.Stop, Parameters = parameters },
+            new() { Name = Label(unit, "Restart"), CommandName = SystemdCommands.Restart, Parameters = parameters },
+            new() { Name = Label(unit, "Reload"), CommandName = SystemdCommands.Reload, Parameters = parameters },
+            new() { Name = Label(unit, "Reset Failed"), CommandName = SystemdCommands.ResetFailed, Parameters = parameters },
+            new() { Name = Label(unit, "Status"), CommandName = SystemdCommands.Prefix + "UnitStatus", Parameters = statusParameters },
+            new() { Name = Label(unit, "Uptime"), CommandName = SystemdCommands.Prefix + "UnitUptime", Parameters = parameters },
+            new() { Name = Label(unit, "Add to Favorites"), CommandName = SystemdCommands.AddFavorite, Parameters = parameters },
+            new() { Name = Label(unit, "Remove from Favorites"), CommandName = SystemdCommands.RemoveFavorite, Parameters = parameters }
         ];
 
         return new MenuNode
@@ -189,6 +199,19 @@ internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings setting
             CommandName = string.Empty,
             Children = actions
         };
+    }
+
+    /// <summary>
+    /// The caption a leaf carries: the unit first, the action after it. The action is translated
+    /// here, because the host translates a node name as a whole and this one is composed.
+    /// </summary>
+    private string Label(string unit, string action) => $"{unit} — {host.Tr(action)}";
+
+    /// <summary>The unit name without its type suffix, which is what fits on a button.</summary>
+    private static string ShortName(string unitName)
+    {
+        int separator = unitName.LastIndexOf('.');
+        return separator > 0 ? unitName[..separator] : unitName;
     }
 
     private static bool IsRunning(UnitListEntry unit) =>
