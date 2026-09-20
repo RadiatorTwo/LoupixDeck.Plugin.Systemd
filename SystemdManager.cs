@@ -1,0 +1,379 @@
+using LoupixDeck.PluginSdk;
+using Tmds.DBus.Protocol;
+
+namespace LoupixDeck.Plugin.Systemd;
+
+/// <summary>One row of org.freedesktop.systemd1.Manager.ListUnitsByPatterns.</summary>
+internal readonly record struct UnitListEntry(
+    string Name,
+    string Description,
+    string LoadState,
+    string ActiveState,
+    string SubState,
+    string ObjectPath);
+
+/// <summary>The properties of one unit, read in a single pass.</summary>
+internal readonly record struct UnitProperties(
+    string Description,
+    string LoadState,
+    string ActiveState,
+    string SubState,
+    string UnitFileState,
+    DateTimeOffset? ActiveEnter,
+    uint MainPid,
+    string Result,
+    bool CanStart,
+    bool CanStop,
+    bool CanReload);
+
+/// <summary>
+/// Talks to org.freedesktop.systemd1.Manager of one instance: lists units, reads their properties,
+/// runs the five runtime actions and forwards the manager's signals. It holds no unit state of its
+/// own — that is the registry's job.
+/// </summary>
+internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger logger) : IDisposable
+{
+    public const string Service = SystemdConnection.ManagerService;
+    public const string ManagerPath = "/org/freedesktop/systemd1";
+    public const string ManagerInterface = "org.freedesktop.systemd1.Manager";
+    public const string UnitInterface = "org.freedesktop.systemd1.Unit";
+    public const string ServiceInterface = "org.freedesktop.systemd1.Service";
+
+    /// <summary>The job mode every action uses. "replace" is what systemctl does by default.</summary>
+    private const string JobMode = "replace";
+
+    private readonly List<IDisposable> _watches = [];
+
+    public UnitDomain Domain => connection.Domain;
+
+    public bool IsConnected => connection.IsConnected;
+
+    /// <summary>Raised when a job finished, with the job path and systemd's result string.</summary>
+    public event Action<string, string>? JobRemoved;
+
+    /// <summary>Raised with the object path of a unit whose properties changed.</summary>
+    public event Action<string>? UnitPropertiesChanged;
+
+    /// <summary>Raised when systemd added or removed a unit, with its name.</summary>
+    public event Action<string>? UnitSetChanged;
+
+    /// <summary>Raised when a daemon-reload starts (true) and when it finished (false).</summary>
+    public event Action<bool>? Reloading;
+
+    /// <summary>
+    /// Subscribes to the manager and installs the signal watches. systemd only emits unit property
+    /// changes while at least one client is subscribed, so this is required for the cache, not just
+    /// for job tracking.
+    /// </summary>
+    public async Task<bool> StartAsync()
+    {
+        DBusClient? client = connection.Client;
+
+        if (client is null)
+        {
+            return false;
+        }
+
+        UnitCallOutcome outcome = await client
+            .CallAsync(Service, ManagerPath, ManagerInterface, "Subscribe")
+            .ConfigureAwait(false);
+
+        if (outcome != UnitCallOutcome.Ok)
+        {
+            logger.Info($"Systemd: cannot subscribe to the {UnitDomainParser.ToParameterValue(Domain)} manager, state updates stay off.");
+            return false;
+        }
+
+        await WatchSignalsAsync(client).ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>Drops every signal watch. Called before a re-subscribe and on shutdown.</summary>
+    public void Stop()
+    {
+        foreach (IDisposable watch in _watches)
+        {
+            watch.Dispose();
+        }
+
+        _watches.Clear();
+    }
+
+    public void Dispose() => Stop();
+
+    /// <summary>Lists the units matching the given name patterns, in whatever state they are.</summary>
+    public async Task<IReadOnlyList<UnitListEntry>> ListUnitsAsync(IReadOnlyList<string> patterns)
+    {
+        DBusClient? client = connection.Client;
+
+        if (client is null)
+        {
+            return [];
+        }
+
+        DBusResult<List<UnitListEntry>> result = await client.CallAsync(
+            Service,
+            ManagerPath,
+            ManagerInterface,
+            "ListUnitsByPatterns",
+            ReadUnitList,
+            [],
+            "asas",
+            (ref MessageWriter writer) =>
+            {
+                writer.WriteArray(Array.Empty<string>()); // every state
+                writer.WriteArray(patterns.ToArray());
+            }).ConfigureAwait(false);
+
+        return result.Value;
+    }
+
+    /// <summary>
+    /// Resolves the object path of a unit, loading it when needed. LoadUnit is used instead of
+    /// GetUnit so a unit that exists on disk but is not loaded yet still resolves.
+    /// </summary>
+    public async Task<DBusResult<string>> LoadUnitAsync(string unitName)
+    {
+        DBusClient? client = connection.Client;
+
+        if (client is null)
+        {
+            return new DBusResult<string>(string.Empty, UnitCallOutcome.Unavailable);
+        }
+
+        return await client.CallAsync(
+            Service,
+            ManagerPath,
+            ManagerInterface,
+            "LoadUnit",
+            DBusClient.ReadObjectPath,
+            string.Empty,
+            "s",
+            (ref MessageWriter writer) => writer.WriteString(unitName)).ConfigureAwait(false);
+    }
+
+    /// <summary>Reads the Unit and Service properties of one object path in one go.</summary>
+    public async Task<DBusResult<UnitProperties>> GetPropertiesAsync(string objectPath)
+    {
+        DBusClient? client = connection.Client;
+
+        if (client is null)
+        {
+            return new DBusResult<UnitProperties>(default, UnitCallOutcome.Unavailable);
+        }
+
+        DBusResult<Dictionary<string, VariantValue>> unit = await client
+            .GetAllPropertiesAsync(Service, objectPath, UnitInterface)
+            .ConfigureAwait(false);
+
+        if (!unit.IsSuccess)
+        {
+            return new DBusResult<UnitProperties>(default, unit.Outcome);
+        }
+
+        // Only services carry these, and a unit of another type simply reports nothing.
+        DBusResult<Dictionary<string, VariantValue>> service = await client
+            .GetAllPropertiesAsync(Service, objectPath, ServiceInterface)
+            .ConfigureAwait(false);
+
+        UnitProperties properties = new(
+            ReadString(unit.Value, "Description"),
+            ReadString(unit.Value, "LoadState"),
+            ReadString(unit.Value, "ActiveState"),
+            ReadString(unit.Value, "SubState"),
+            ReadString(unit.Value, "UnitFileState"),
+            ReadTimestamp(unit.Value, "ActiveEnterTimestamp"),
+            ReadUInt32(service.Value, "MainPID"),
+            ReadString(service.Value, "Result"),
+            ReadBool(unit.Value, "CanStart"),
+            ReadBool(unit.Value, "CanStop"),
+            ReadBool(unit.Value, "CanReload"));
+
+        return new DBusResult<UnitProperties>(properties, UnitCallOutcome.Ok);
+    }
+
+    /// <summary>Starts a unit and returns the path of the job systemd queued for it.</summary>
+    public Task<DBusResult<string>> StartUnitAsync(string unitName) => CallJobAsync("StartUnit", unitName);
+
+    public Task<DBusResult<string>> StopUnitAsync(string unitName) => CallJobAsync("StopUnit", unitName);
+
+    public Task<DBusResult<string>> RestartUnitAsync(string unitName) => CallJobAsync("RestartUnit", unitName);
+
+    public Task<DBusResult<string>> ReloadUnitAsync(string unitName) => CallJobAsync("ReloadUnit", unitName);
+
+    /// <summary>Clears the failed state of a unit. This call produces no job.</summary>
+    public async Task<UnitCallOutcome> ResetFailedUnitAsync(string unitName)
+    {
+        DBusClient? client = connection.Client;
+
+        if (client is null)
+        {
+            return UnitCallOutcome.Unavailable;
+        }
+
+        return await client.CallAsync(
+            Service,
+            ManagerPath,
+            ManagerInterface,
+            "ResetFailedUnit",
+            "s",
+            (ref MessageWriter writer) => writer.WriteString(unitName)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs one of the job-producing actions. The interactive authorization flag is never set, so
+    /// PolicyKit answers with a denial instead of prompting the user for a password.
+    /// </summary>
+    private async Task<DBusResult<string>> CallJobAsync(string member, string unitName)
+    {
+        DBusClient? client = connection.Client;
+
+        if (client is null)
+        {
+            return new DBusResult<string>(string.Empty, UnitCallOutcome.Unavailable);
+        }
+
+        return await client.CallAsync(
+            Service,
+            ManagerPath,
+            ManagerInterface,
+            member,
+            DBusClient.ReadObjectPath,
+            string.Empty,
+            "ss",
+            (ref MessageWriter writer) =>
+            {
+                writer.WriteString(unitName);
+                writer.WriteString(JobMode);
+            }).ConfigureAwait(false);
+    }
+
+    private async Task WatchSignalsAsync(DBusClient client)
+    {
+        Stop();
+
+        Add(await client.WatchSignalAsync(
+            Service, ManagerPath, ManagerInterface, "JobRemoved",
+            ReadJobRemoved,
+            job => JobRemoved?.Invoke(job.JobPath, job.Result)).ConfigureAwait(false));
+
+        Add(await client.WatchSignalAsync(
+            Service, ManagerPath, ManagerInterface, "UnitNew",
+            ReadUnitName,
+            name => UnitSetChanged?.Invoke(name)).ConfigureAwait(false));
+
+        Add(await client.WatchSignalAsync(
+            Service, ManagerPath, ManagerInterface, "UnitRemoved",
+            ReadUnitName,
+            name => UnitSetChanged?.Invoke(name)).ConfigureAwait(false));
+
+        Add(await client.WatchSignalAsync(
+            Service, ManagerPath, ManagerInterface, "Reloading",
+            ReadReloading,
+            active => Reloading?.Invoke(active)).ConfigureAwait(false));
+
+        // One rule for every unit object: systemd publishes property changes per unit, and
+        // subscribing per unit would mean one match rule per tracked unit.
+        MatchRule propertiesRule = new()
+        {
+            Type = MessageType.Signal,
+            Sender = Service,
+            PathNamespace = "/org/freedesktop/systemd1/unit",
+            Interface = DBusClient.PropertiesInterface,
+            Member = "PropertiesChanged"
+        };
+
+        Add(await client.WatchMatchAsync(
+            propertiesRule,
+            ReadChangedObjectPath,
+            path => UnitPropertiesChanged?.Invoke(path)).ConfigureAwait(false));
+    }
+
+    private void Add(IDisposable? watch)
+    {
+        if (watch is not null)
+        {
+            _watches.Add(watch);
+        }
+    }
+
+    private static List<UnitListEntry> ReadUnitList(Message message, object? state)
+    {
+        Reader reader = message.GetBodyReader();
+        List<UnitListEntry> entries = [];
+
+        ArrayEnd end = reader.ReadArrayStart(DBusType.Struct);
+        while (reader.HasNext(end))
+        {
+            string name = reader.ReadString();
+            string description = reader.ReadString();
+            string loadState = reader.ReadString();
+            string activeState = reader.ReadString();
+            string subState = reader.ReadString();
+            reader.ReadString(); // the unit this one follows
+            string objectPath = reader.ReadObjectPathAsString();
+            reader.ReadUInt32(); // job id
+            reader.ReadString(); // job type
+            reader.ReadObjectPathAsString(); // job path
+
+            entries.Add(new UnitListEntry(name, description, loadState, activeState, subState, objectPath));
+        }
+
+        return entries;
+    }
+
+    private static (string JobPath, string Result) ReadJobRemoved(Message message, object? state)
+    {
+        Reader reader = message.GetBodyReader();
+        reader.ReadUInt32(); // job id
+        string jobPath = reader.ReadObjectPathAsString();
+        reader.ReadString(); // unit name
+        string result = reader.ReadString();
+        return (jobPath, result);
+    }
+
+    private static string ReadUnitName(Message message, object? state)
+    {
+        Reader reader = message.GetBodyReader();
+        return reader.ReadString();
+    }
+
+    private static bool ReadReloading(Message message, object? state)
+    {
+        Reader reader = message.GetBodyReader();
+        return reader.ReadBool();
+    }
+
+    /// <summary>
+    /// systemd frequently sends PropertiesChanged with an empty body, so only the object path the
+    /// signal came from is of interest; the values are re-read afterwards.
+    /// </summary>
+    private static string ReadChangedObjectPath(Message message, object? state) => message.PathAsString ?? string.Empty;
+
+    private static string ReadString(Dictionary<string, VariantValue> properties, string key) =>
+        properties.TryGetValue(key, out VariantValue value) ? value.GetString() : string.Empty;
+
+    private static bool ReadBool(Dictionary<string, VariantValue> properties, string key) =>
+        properties.TryGetValue(key, out VariantValue value) && value.GetBool();
+
+    private static uint ReadUInt32(Dictionary<string, VariantValue> properties, string key) =>
+        properties.TryGetValue(key, out VariantValue value) ? value.GetUInt32() : 0u;
+
+    /// <summary>Reads a systemd timestamp, which counts microseconds since the epoch. 0 means never.</summary>
+    private static DateTimeOffset? ReadTimestamp(Dictionary<string, VariantValue> properties, string key)
+    {
+        if (!properties.TryGetValue(key, out VariantValue value))
+        {
+            return null;
+        }
+
+        ulong microseconds = value.GetUInt64();
+
+        if (microseconds == 0 || microseconds == ulong.MaxValue)
+        {
+            return null;
+        }
+
+        return DateTimeOffset.FromUnixTimeMilliseconds((long)(microseconds / 1000));
+    }
+}
