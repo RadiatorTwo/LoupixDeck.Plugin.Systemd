@@ -246,6 +246,14 @@ internal sealed class DBusClient(DBusConnection connection, IPluginLogger logger
     private UnitCallOutcome Fail(string destination, string path, string member, Exception exception)
     {
         UnitCallOutcome outcome = SystemdErrors.Map(exception);
+
+        // A few D-Bus errors mean the caller already has what it asked for. They are not worth a
+        // warning, and they are not a failure either.
+        if (outcome == UnitCallOutcome.Ok)
+        {
+            return outcome;
+        }
+
         string key = string.Concat(destination, path, member, outcome.ToString());
         long now = Stopwatch.GetTimestamp();
 
