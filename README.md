@@ -1,0 +1,68 @@
+# LoupixDeck.Plugin.Systemd
+
+Monitors and controls systemd units from a Loupedeck device. It talks to
+`org.freedesktop.systemd1` over D-Bus directly — it never runs `systemctl`, never starts `sudo`
+and never asks for a password.
+
+Linux only.
+
+## What it does
+
+- Serves both systemd instances: the **user** instance over the session bus and the **system**
+  instance over the system bus.
+- Runtime actions on a unit: start, stop, restart, reload, toggle and reset-failed. Each one waits
+  for the systemd job it created, so a button reports what actually happened rather than that the
+  request was accepted.
+- Eleven touch displays for one unit each: status, name, description, active state, sub state,
+  load state, unit file state, uptime, main process, last result and instance.
+- Ten favorite slots whose button state follows the unit: `Inactive`, `Activating`, `Active`,
+  `Deactivating`, `Reloading`, `Failed`, `NotFound` and `PermissionDenied`.
+- A touch folder listing the favorite units with their state and a colour per state.
+
+This version offers services only and changes nothing that survives a reboot: enable, disable,
+mask and unmask are deliberately left out, and so are timers, unit file editing and the journal.
+
+## Choosing a unit
+
+A unit is stored as `instance:name`, for example `user:pipewire.service` or
+`system:sshd.service`. A name without an instance uses the preferred instance from the settings,
+and a name without a type suffix is read as a service.
+
+The command menu walks to a unit — instance, letter group, unit — and bakes it into the command.
+Every unit in the menu also offers **Add Unit to Favorites**, which is how the favorites list is
+built without typing unit names.
+
+## Permissions
+
+User units work as they are. System units usually need a PolicyKit authorization, and this plugin
+never asks for one: the call is made without the interactive flag, so PolicyKit answers with a
+denial instead of prompting. A denied command shows `PermissionDenied` and leaves the unit's own
+state alone — a running unit is never shown as failed only because stopping it was not allowed.
+
+To allow specific system units without a prompt, add a PolicyKit rule on the machine itself. That
+is a system decision and stays outside the plugin.
+
+## Build
+
+```bash
+dotnet build -c Release
+```
+
+Copy `plugin.json`, `LoupixDeck.Plugin.Systemd.dll` and the `strings.*.json` from `bin/Release/`
+into `<LoupixDeck>/plugins/systemd/`.
+
+## Settings
+
+| Setting | Meaning |
+|---|---|
+| Preferred instance | `user` or `system`, used when a unit carries no prefix |
+| Show system units | Off never opens the system bus at all |
+| Favorite units | The comma list behind the folder and the favorite slots |
+| Unit types | Reserved; this version lists services only |
+| Show stopped / unloaded units | What the command menu lists |
+| Action when an entry is pressed | `toggle`, `start`, `stop`, `restart`, `reload` or `status` |
+| D-Bus timeout | How long one call to systemd may take (250–10000 ms) |
+| Command timeout | How long a button waits for its job (1000–120000 ms). The unit keeps going when the wait runs out. |
+
+**List units** prints the units of both instances so their names can be copied into the favorites
+field.
