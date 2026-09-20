@@ -77,7 +77,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IMenuContributor, IPluginSetti
         new CommandGroupDescriptor
         {
             Group = SystemdCommands.Group,
-            Icon = SystemdCommands.CogGlyph,
+            Icon = SystemdCommands.PickerGlyph,
             Description = "Start, stop and watch systemd units",
             Section = CommandGroupSection.Plugins
         }

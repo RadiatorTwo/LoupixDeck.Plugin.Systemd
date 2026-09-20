@@ -55,11 +55,16 @@ internal static class SystemdCommands
     }
 
     /// <summary>
-    /// The category card's glyph, taken from the host's symbol library. Commands themselves declare
-    /// no icon: the host turns a command's icon into a symbol layer on the button it is dropped on,
-    /// and these buttons carry their own text instead.
+    /// The glyph the command picker shows, mdi-cog-outline.
+    /// <para>
+    /// It sits deliberately outside the host's curated symbol set. Dropping a command on a touch
+    /// button turns the glyph the picker row shows into a symbol layer, and a row without an icon
+    /// of its own inherits one from its category — so leaving the icon empty produced a folder
+    /// symbol rather than none. A glyph the symbol set does not know resolves to no symbol at all,
+    /// which leaves the button with the caption these buttons want.
+    /// </para>
     /// </summary>
-    public const string CogGlyph = "\U000F0493";
+    public const string PickerGlyph = "\U000F08BB";
 
     /// <summary>Builds the descriptor of a command that acts on the unit in its parameter.</summary>
     public static CommandDescriptor UnitDescriptor(
@@ -71,6 +76,7 @@ internal static class SystemdCommands
         CommandName = commandName,
         DisplayName = displayName,
         Group = Group,
+        Icon = PickerGlyph,
         Description = description,
         ParameterTemplate = UnitTemplate,
         Parameters = [new CommandParameter(UnitParameter, typeof(string))],

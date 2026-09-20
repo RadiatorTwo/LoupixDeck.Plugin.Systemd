@@ -34,8 +34,10 @@ A menu entry is named after its unit, for example `pipewire — Restart`, so a b
 it carries the unit name as its caption. Every unit in the menu also offers **Add to Favorites**,
 which is how the favorites list is built without typing unit names.
 
-No command declares an icon, so dropping one on a touch button writes a plain caption instead of a
-symbol with a label underneath.
+Dropping a command on a touch button writes a plain caption, not a symbol with a label underneath.
+The host builds that symbol from the glyph the picker row shows, and a row without an icon of its
+own inherits its category's, so the commands declare a glyph outside the host's curated symbol set
+instead of none at all.
 
 ## Permissions
 

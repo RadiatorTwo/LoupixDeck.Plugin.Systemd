@@ -57,6 +57,7 @@ internal static class SystemdDisplayCommands
             CommandName = SystemdCommands.Prefix + "UnitStatus",
             DisplayName = "Unit Status",
             Group = SystemdCommands.Group,
+            Icon = SystemdCommands.PickerGlyph,
             Description = "Show what the unit is doing, with its name above the state. Set the second value to 0 to leave the name out.",
             ParameterTemplate = SystemdCommands.StatusTemplate,
             Parameters =

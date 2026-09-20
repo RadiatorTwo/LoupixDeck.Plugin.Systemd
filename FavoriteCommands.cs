@@ -15,6 +15,7 @@ internal sealed class OpenUnitsCommand(
         CommandName = SystemdCommands.OpenUnits,
         DisplayName = "Open Units Folder",
         Group = SystemdCommands.Group,
+        Icon = SystemdCommands.PickerGlyph,
         Description = "Open a folder with the favorite units and their state"
     };
 
