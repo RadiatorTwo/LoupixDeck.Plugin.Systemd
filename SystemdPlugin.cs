@@ -55,6 +55,8 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
             IReadOnlyList<FavoriteSlotCommand> slots = FavoriteSlotCommands.Create(_registry!, settings);
             _commands.AddRange(slots);
 
+            _commands.AddRange(FavoriteCommands.Create(_registry!, settings, host));
+
             _binder = new SystemdStateBinder(host, _registry!, slots, displayCommandNames);
             _binder.Start();
         }

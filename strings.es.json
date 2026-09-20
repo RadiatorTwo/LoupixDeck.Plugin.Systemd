@@ -111,5 +111,17 @@
   "Show and control favorite unit 07. The button follows the unit's state.": "Mostrar y controlar la unidad favorita 07. El botón sigue el estado de la unidad.",
   "Show and control favorite unit 08. The button follows the unit's state.": "Mostrar y controlar la unidad favorita 08. El botón sigue el estado de la unidad.",
   "Show and control favorite unit 09. The button follows the unit's state.": "Mostrar y controlar la unidad favorita 09. El botón sigue el estado de la unidad.",
-  "Show and control favorite unit 10. The button follows the unit's state.": "Mostrar y controlar la unidad favorita 10. El botón sigue el estado de la unidad."
+  "Show and control favorite unit 10. The button follows the unit's state.": "Mostrar y controlar la unidad favorita 10. El botón sigue el estado de la unidad.",
+  "Open Units Folder": "Abrir carpeta de unidades",
+  "Open a folder with the favorite units and their state": "Abrir una carpeta con las unidades favoritas y su estado",
+  "Add Unit to Favorites": "Añadir unidad a favoritos",
+  "Put the unit into the units folder": "Incluir la unidad en la carpeta de unidades",
+  "Remove Unit from Favorites": "Quitar unidad de favoritos",
+  "Take the unit out of the units folder": "Sacar la unidad de la carpeta de unidades",
+  "Added to favorites": "Añadida a favoritos",
+  "Already a favorite": "Ya es favorita",
+  "Removed from favorites": "Quitada de favoritos",
+  "Not a favorite": "No es favorita",
+  "Systemd Units": "Unidades de systemd",
+  "No favorite units": "Sin unidades favoritas"
 }
