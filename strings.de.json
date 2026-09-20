@@ -61,13 +61,10 @@
   "Reloading": "Lädt neu",
   "Unknown": "Unbekannt",
   "Unit Status": "Unit-Status",
-  "Show the unit name and what it is doing": "Den Namen der Unit und ihren Zustand anzeigen",
   "Unit Name": "Unit-Name",
   "Show the name of the unit": "Den Namen der Unit anzeigen",
   "Unit Description": "Unit-Beschreibung",
   "Show the description systemd has for the unit": "Die Beschreibung anzeigen, die systemd für die Unit hat",
-  "Unit State": "Unit-Zustand",
-  "Show whether the unit is running, stopped or failed": "Anzeigen, ob die Unit läuft, gestoppt ist oder fehlgeschlagen ist",
   "Unit Sub State": "Detailzustand der Unit",
   "Show the detailed state systemd reports, for example running or dead": "Den Detailzustand anzeigen, den systemd meldet, zum Beispiel running oder dead",
   "Unit Load State": "Ladezustand der Unit",
@@ -127,5 +124,6 @@
   "Favorites": "Favoriten",
   "Favorite Slots": "Favoriten-Plätze",
   "User Units": "Benutzer-Units",
-  "System Units": "System-Units"
+  "System Units": "System-Units",
+  "Show what the unit is doing, with its name above the state. Set the second value to 0 to leave the name out.": "Zeigt, was die Unit tut, mit ihrem Namen über dem Zustand. Setzen Sie den zweiten Wert auf 0, um den Namen wegzulassen."
 }

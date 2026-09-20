@@ -10,7 +10,7 @@ namespace LoupixDeck.Plugin.Systemd;
 /// </summary>
 internal sealed class UnitDisplayCommand(
     CommandDescriptor descriptor,
-    Func<UnitState, IPluginHost, string> format,
+    Func<UnitState, CommandContext, string> format,
     UnitRegistry registry,
     SystemdSettings settings) : UnitCommandBase(descriptor, registry, settings), IDisplayCommand
 {
@@ -31,7 +31,7 @@ internal sealed class UnitDisplayCommand(
             return ctx.Host.Tr("No unit");
         }
 
-        return format(Registry.Get(id), ctx.Host);
+        return format(Registry.Get(id), ctx);
     }
 
     protected override Task ExecuteCore(CommandContext ctx)
@@ -52,13 +52,24 @@ internal static class SystemdDisplayCommands
 {
     public static IEnumerable<IPluginCommand> Create(UnitRegistry registry, SystemdSettings settings)
     {
-        yield return Build(
-            SystemdCommands.Prefix + "UnitStatus",
-            "Unit Status",
-            "Show the unit name and what it is doing",
-            FormatStatus,
-            registry,
-            settings);
+        CommandDescriptor status = new()
+        {
+            CommandName = SystemdCommands.Prefix + "UnitStatus",
+            DisplayName = "Unit Status",
+            Group = SystemdCommands.Group,
+            Description = "Show what the unit is doing, with its name above the state. Set the second value to 0 to leave the name out.",
+            ParameterTemplate = SystemdCommands.StatusTemplate,
+            Parameters =
+            [
+                new CommandParameter(SystemdCommands.UnitParameter, typeof(string)),
+                new CommandParameter(SystemdCommands.ShowNameParameter, typeof(string))
+                {
+                    DefaultValue = SystemdCommands.SwitchOn
+                }
+            ]
+        };
+
+        yield return new UnitDisplayCommand(status, FormatStatus, registry, settings);
 
         yield return Build(
             SystemdCommands.Prefix + "UnitName",
@@ -72,15 +83,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitDescription",
             "Unit Description",
             "Show the description systemd has for the unit",
-            (state, host) => state.Description.Length > 0 ? state.Description : host.Tr(SystemdCommands.StateText(state)),
-            registry,
-            settings);
-
-        yield return Build(
-            SystemdCommands.Prefix + "UnitActiveState",
-            "Unit State",
-            "Show whether the unit is running, stopped or failed",
-            (state, host) => $"{SystemdCommands.StateGlyph(state)} {host.Tr(SystemdCommands.StateText(state))}",
+            (state, ctx) => state.Description.Length > 0 ? state.Description : ctx.Host.Tr(SystemdCommands.StateText(state)),
             registry,
             settings);
 
@@ -88,7 +91,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitSubState",
             "Unit Sub State",
             "Show the detailed state systemd reports, for example running or dead",
-            (state, host) => state.SubState.Length > 0 ? state.SubState : host.Tr("Unknown"),
+            (state, ctx) => state.SubState.Length > 0 ? state.SubState : ctx.Host.Tr("Unknown"),
             registry,
             settings);
 
@@ -96,7 +99,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitLoadState",
             "Unit Load State",
             "Show whether systemd could load the unit",
-            (state, host) => state.LoadState.Length > 0 ? state.LoadState : host.Tr("Unknown"),
+            (state, ctx) => state.LoadState.Length > 0 ? state.LoadState : ctx.Host.Tr("Unknown"),
             registry,
             settings);
 
@@ -104,7 +107,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitFileState",
             "Unit File State",
             "Show whether the unit starts on its own, for example enabled or disabled",
-            (state, host) => state.UnitFileState.Length > 0 ? state.UnitFileState : host.Tr("Unknown"),
+            (state, ctx) => state.UnitFileState.Length > 0 ? state.UnitFileState : ctx.Host.Tr("Unknown"),
             registry,
             settings);
 
@@ -120,9 +123,9 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitMainPid",
             "Unit Main Process",
             "Show the process id of the unit's main process",
-            (state, host) => state.MainPid > 0
+            (state, ctx) => state.MainPid > 0
                 ? state.MainPid.ToString(CultureInfo.InvariantCulture)
-                : host.Tr("No process"),
+                : ctx.Host.Tr("No process"),
             registry,
             settings);
 
@@ -130,7 +133,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitResult",
             "Unit Result",
             "Show how the unit ended the last time it ran",
-            (state, host) => state.Result.Length > 0 ? state.Result : host.Tr("Unknown"),
+            (state, ctx) => state.Result.Length > 0 ? state.Result : ctx.Host.Tr("Unknown"),
             registry,
             settings);
 
@@ -138,23 +141,30 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitDomain",
             "Unit Instance",
             "Show whether the unit belongs to the user or the system instance",
-            (state, host) => host.Tr(UnitDomainParser.ToEnglishText(state.Id.Domain)),
+            (state, ctx) => ctx.Host.Tr(UnitDomainParser.ToEnglishText(state.Id.Domain)),
             registry,
             settings);
     }
 
-    /// <summary>The composite button from the issue: unit name on top, state below it.</summary>
-    private static string FormatStatus(UnitState state, IPluginHost host)
+    /// <summary>
+    /// The state button: the glyph and the state, with the unit name above it unless the button's
+    /// switch turns that off. One command covers both looks, so the menu has no second,
+    /// near-identical entry.
+    /// </summary>
+    private static string FormatStatus(UnitState state, CommandContext ctx)
     {
-        string status = $"{SystemdCommands.StateGlyph(state)} {host.Tr(SystemdCommands.StateText(state))}";
-        return string.Join(Environment.NewLine, state.ShortName, status);
+        string status = $"{SystemdCommands.StateGlyph(state)} {ctx.Host.Tr(SystemdCommands.StateText(state))}";
+
+        return SystemdCommands.ReadSwitch(ctx, 1)
+            ? string.Join(Environment.NewLine, state.ShortName, status)
+            : status;
     }
 
-    private static string FormatUptime(UnitState state, IPluginHost host)
+    private static string FormatUptime(UnitState state, CommandContext ctx)
     {
         if (state.ActiveEnter is not { } since || !state.IsActive)
         {
-            return host.Tr(SystemdCommands.StateText(state));
+            return ctx.Host.Tr(SystemdCommands.StateText(state));
         }
 
         TimeSpan uptime = DateTimeOffset.UtcNow - since;
@@ -181,7 +191,7 @@ internal static class SystemdDisplayCommands
         string commandName,
         string displayName,
         string description,
-        Func<UnitState, IPluginHost, string> format,
+        Func<UnitState, CommandContext, string> format,
         UnitRegistry registry,
         SystemdSettings settings)
     {

@@ -161,6 +161,13 @@ internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings setting
             [SystemdCommands.UnitParameter] = id.ToString()
         };
 
+        // The status button carries a second value, the switch that prints the unit name.
+        Dictionary<string, string> statusParameters = new(StringComparer.Ordinal)
+        {
+            [SystemdCommands.UnitParameter] = id.ToString(),
+            [SystemdCommands.ShowNameParameter] = SystemdCommands.SwitchOn
+        };
+
         List<MenuNode> actions =
         [
             new() { Name = "Toggle Unit", CommandName = SystemdCommands.Toggle, Parameters = parameters },
@@ -169,8 +176,7 @@ internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings setting
             new() { Name = "Restart Unit", CommandName = SystemdCommands.Restart, Parameters = parameters },
             new() { Name = "Reload Unit", CommandName = SystemdCommands.Reload, Parameters = parameters },
             new() { Name = "Reset Failed Unit", CommandName = SystemdCommands.ResetFailed, Parameters = parameters },
-            new() { Name = "Unit Status", CommandName = SystemdCommands.Prefix + "UnitStatus", Parameters = parameters },
-            new() { Name = "Unit State", CommandName = SystemdCommands.Prefix + "UnitActiveState", Parameters = parameters },
+            new() { Name = "Unit Status", CommandName = SystemdCommands.Prefix + "UnitStatus", Parameters = statusParameters },
             new() { Name = "Unit Uptime", CommandName = SystemdCommands.Prefix + "UnitUptime", Parameters = parameters },
             new() { Name = "Add Unit to Favorites", CommandName = SystemdCommands.AddFavorite, Parameters = parameters },
             new() { Name = "Remove Unit from Favorites", CommandName = SystemdCommands.RemoveFavorite, Parameters = parameters }

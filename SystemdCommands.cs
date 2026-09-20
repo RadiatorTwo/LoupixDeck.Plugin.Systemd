@@ -27,6 +27,33 @@ internal static class SystemdCommands
     /// <summary>The placeholder the command builder shows for that parameter.</summary>
     public const string UnitTemplate = "({unit})";
 
+    /// <summary>The name of the switch that decides whether the status button prints the unit name.</summary>
+    public const string ShowNameParameter = "showName";
+
+    /// <summary>The template of the status command, which carries the unit and that switch.</summary>
+    public const string StatusTemplate = "({unit},{showName})";
+
+    /// <summary>The value the switch carries when the name is printed.</summary>
+    public const string SwitchOn = "1";
+
+    /// <summary>The value the switch carries when the name is left out.</summary>
+    public const string SwitchOff = "0";
+
+    /// <summary>
+    /// Reads a switch parameter. Everything but an explicit off value counts as on, so a button
+    /// saved before the switch existed, or with an empty parameter, keeps printing the name.
+    /// </summary>
+    public static bool ReadSwitch(CommandContext ctx, int index)
+    {
+        string? value = ctx.Parameters.Length > index ? ctx.Parameters[index]?.Trim() : null;
+
+        return value?.ToLowerInvariant() switch
+        {
+            SwitchOff or "false" or "no" or "off" => false,
+            _ => true
+        };
+    }
+
     /// <summary>
     /// The category card's glyph, taken from the host's symbol library. Commands themselves declare
     /// no icon: the host turns a command's icon into a symbol layer on the button it is dropped on,
