@@ -140,6 +140,77 @@ internal sealed class UnitRegistry : IDisposable
     }
 
     /// <summary>
+    /// Runs an action on a unit and waits for the systemd job it produced. The call itself
+    /// succeeding says nothing about the unit, so the job result decides the outcome; afterwards
+    /// the unit is re-read in every case, including after a timeout.
+    /// </summary>
+    public async Task<UnitActionResult> RunAsync(UnitId id, UnitAction action, TimeSpan timeout)
+    {
+        if (!id.IsValid || !_domains.TryGetValue(id.Domain, out DomainContext? context))
+        {
+            return new UnitActionResult(UnitCallOutcome.NotFound, string.Empty);
+        }
+
+        if (!context.Connection.IsConnected)
+        {
+            return Finish(id, new UnitActionResult(UnitCallOutcome.Unavailable, string.Empty));
+        }
+
+        Track(id);
+
+        if (action == UnitAction.ResetFailed)
+        {
+            UnitCallOutcome reset = await context.Manager.ResetFailedUnitAsync(id.Name).ConfigureAwait(false);
+            return Finish(id, new UnitActionResult(reset, string.Empty));
+        }
+
+        UnitAction effective = action == UnitAction.Toggle
+            ? await ResolveToggleAsync(id).ConfigureAwait(false)
+            : action;
+
+        DBusResult<string> job = effective switch
+        {
+            UnitAction.Start => await context.Manager.StartUnitAsync(id.Name).ConfigureAwait(false),
+            UnitAction.Stop => await context.Manager.StopUnitAsync(id.Name).ConfigureAwait(false),
+            UnitAction.Restart => await context.Manager.RestartUnitAsync(id.Name).ConfigureAwait(false),
+            _ => await context.Manager.ReloadUnitAsync(id.Name).ConfigureAwait(false)
+        };
+
+        if (!job.IsSuccess)
+        {
+            return Finish(id, new UnitActionResult(job.Outcome, string.Empty));
+        }
+
+        string result = await context.Jobs.WaitAsync(job.Value, timeout).ConfigureAwait(false);
+        return Finish(id, new UnitActionResult(JobTracker.ToOutcome(result), result));
+    }
+
+    /// <summary>
+    /// Decides what a toggle does. The cached state may predate the press, so a unit that has not
+    /// been read yet is read first rather than guessed.
+    /// </summary>
+    private async Task<UnitAction> ResolveToggleAsync(UnitId id)
+    {
+        UnitState state = Get(id);
+
+        if (state.Availability == UnitAvailability.Unknown)
+        {
+            await RefreshAsync(id).ConfigureAwait(false);
+            state = Get(id);
+        }
+
+        return state.IsActive ? UnitAction.Stop : UnitAction.Start;
+    }
+
+    /// <summary>Records the outcome and re-reads the unit, whatever happened.</summary>
+    private UnitActionResult Finish(UnitId id, UnitActionResult result)
+    {
+        SetLastOutcome(id, result.Outcome);
+        _ = Task.Run(() => RefreshAsync(id));
+        return result;
+    }
+
+    /// <summary>
     /// Lists the service units of a domain. The result is cached, because the command menu is built
     /// from it and the host gives a menu contributor only a few seconds.
     /// </summary>
@@ -185,6 +256,7 @@ internal sealed class UnitRegistry : IDisposable
 
         foreach (DomainContext domain in _domains.Values)
         {
+            domain.Jobs.Dispose();
             domain.Manager.Dispose();
             domain.Connection.Dispose();
         }
@@ -204,6 +276,7 @@ internal sealed class UnitRegistry : IDisposable
         manager.UnitPropertiesChanged += path => OnUnitPropertiesChanged(context, path);
         manager.UnitSetChanged += _ => OnUnitSetChanged(context);
         manager.Reloading += reloading => OnReloading(context, reloading);
+        manager.JobRemoved += (jobPath, result) => context.Jobs.Complete(jobPath, result);
 
         _domains[domain] = context;
     }
@@ -225,6 +298,9 @@ internal sealed class UnitRegistry : IDisposable
     {
         context.PathToUnit.Clear();
         context.InvalidateListing();
+
+        // The jobs of the old manager will never report back.
+        context.Jobs.Reset();
 
         foreach (UnitId id in _tracked.Keys)
         {
@@ -437,7 +513,15 @@ internal sealed class UnitRegistry : IDisposable
 
     private void Publish(UnitState state)
     {
+        bool hadState = _units.TryGetValue(state.Id, out UnitState? previous);
         _units[state.Id] = state;
+
+        // Several signals can describe the same change, and a command re-reads on top of them.
+        // Only a real difference is worth waking the buttons up for.
+        if (hadState && previous! with { LastUpdate = state.LastUpdate } == state)
+        {
+            return;
+        }
 
         try
         {
@@ -476,6 +560,9 @@ internal sealed class UnitRegistry : IDisposable
         public DateTimeOffset? ListedAt { get; set; }
 
         public bool IsReloading { get; set; }
+
+        /// <summary>Job paths are only unique within one instance, so every domain tracks its own.</summary>
+        public JobTracker Jobs { get; } = new();
 
         public void InvalidateListing()
         {
