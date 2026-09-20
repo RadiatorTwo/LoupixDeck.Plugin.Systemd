@@ -12,8 +12,8 @@ public sealed class SystemdPlugin : LoupixPlugin
         Name = "Systemd",
         Version = new Version(1, 0, 0),
         SdkVersion = new Version(1, 24, 0),
-        Author = "",
-        Description = ""
+        Author = "RadiatorTwo",
+        Description = "Monitors and controls systemd user and system units over the native D-Bus API."
     };
 
     public override void Initialize(IPluginHost host)

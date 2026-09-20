@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "sdkVersion": "1.24",
   "entryAssembly": "LoupixDeck.Plugin.Systemd.dll",
-  "platform": "All",
-  "author": "",
-  "description": "",
-  "projectUrl": "",
+  "platform": "Linux",
+  "author": "RadiatorTwo",
+  "description": "Monitors and controls systemd user and system units over the native D-Bus API.",
+  "projectUrl": "https://github.com/RadiatorTwo/LoupixDeck.Plugin.Systemd",
   "iconFile": ""
 }

@@ -1,3 +1,4 @@
 {
-  "Systemd": "Systemd"
+  "Systemd": "Systemd",
+  "Monitors and controls systemd user and system units over the native D-Bus API.": "Supervisa y controla unidades de systemd del usuario y del sistema a través de la API nativa de D-Bus."
 }
