@@ -15,7 +15,6 @@ internal sealed class OpenUnitsCommand(
         CommandName = SystemdCommands.OpenUnits,
         DisplayName = "Open Units Folder",
         Group = SystemdCommands.Group,
-        Icon = SystemdCommands.FolderGlyph,
         Description = "Open a folder with the favorite units and their state"
     };
 
@@ -82,7 +81,6 @@ internal static class FavoriteCommands
                 SystemdCommands.AddFavorite,
                 "Add Unit to Favorites",
                 "Put the unit into the units folder",
-                SystemdCommands.FolderGlyph,
                 hiddenFromMenu: true),
             add: true,
             registry,
@@ -93,7 +91,6 @@ internal static class FavoriteCommands
                 SystemdCommands.RemoveFavorite,
                 "Remove Unit from Favorites",
                 "Take the unit out of the units folder",
-                SystemdCommands.FolderGlyph,
                 hiddenFromMenu: true),
             add: false,
             registry,

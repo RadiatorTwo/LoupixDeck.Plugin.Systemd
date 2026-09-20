@@ -81,7 +81,6 @@ internal static class FavoriteSlotCommands
                 CommandName = SystemdCommands.Prefix + "Favorite" + number,
                 DisplayName = "Favorite Unit " + number,
                 Group = SystemdCommands.Group,
-                Icon = SystemdCommands.PowerGlyph,
                 Description = "Show and control favorite unit " + number + ". The button follows the unit's state.",
                 HiddenFromMenu = true,
                 States = States

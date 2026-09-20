@@ -56,7 +56,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitStatus",
             "Unit Status",
             "Show the unit name and what it is doing",
-            SystemdCommands.CogGlyph,
             FormatStatus,
             registry,
             settings);
@@ -65,7 +64,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitName",
             "Unit Name",
             "Show the name of the unit",
-            SystemdCommands.CogGlyph,
             (state, _) => state.ShortName,
             registry,
             settings);
@@ -74,7 +72,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitDescription",
             "Unit Description",
             "Show the description systemd has for the unit",
-            SystemdCommands.CogGlyph,
             (state, host) => state.Description.Length > 0 ? state.Description : host.Tr(SystemdCommands.StateText(state)),
             registry,
             settings);
@@ -83,7 +80,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitActiveState",
             "Unit State",
             "Show whether the unit is running, stopped or failed",
-            SystemdCommands.PowerGlyph,
             (state, host) => $"{SystemdCommands.StateGlyph(state)} {host.Tr(SystemdCommands.StateText(state))}",
             registry,
             settings);
@@ -92,7 +88,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitSubState",
             "Unit Sub State",
             "Show the detailed state systemd reports, for example running or dead",
-            SystemdCommands.PowerGlyph,
             (state, host) => state.SubState.Length > 0 ? state.SubState : host.Tr("Unknown"),
             registry,
             settings);
@@ -101,7 +96,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitLoadState",
             "Unit Load State",
             "Show whether systemd could load the unit",
-            SystemdCommands.CogGlyph,
             (state, host) => state.LoadState.Length > 0 ? state.LoadState : host.Tr("Unknown"),
             registry,
             settings);
@@ -110,7 +104,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitFileState",
             "Unit File State",
             "Show whether the unit starts on its own, for example enabled or disabled",
-            SystemdCommands.CogGlyph,
             (state, host) => state.UnitFileState.Length > 0 ? state.UnitFileState : host.Tr("Unknown"),
             registry,
             settings);
@@ -119,7 +112,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitUptime",
             "Unit Uptime",
             "Show how long the unit has been running",
-            SystemdCommands.RefreshGlyph,
             FormatUptime,
             registry,
             settings);
@@ -128,7 +120,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitMainPid",
             "Unit Main Process",
             "Show the process id of the unit's main process",
-            SystemdCommands.CogGlyph,
             (state, host) => state.MainPid > 0
                 ? state.MainPid.ToString(CultureInfo.InvariantCulture)
                 : host.Tr("No process"),
@@ -139,7 +130,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitResult",
             "Unit Result",
             "Show how the unit ended the last time it ran",
-            SystemdCommands.AlertGlyph,
             (state, host) => state.Result.Length > 0 ? state.Result : host.Tr("Unknown"),
             registry,
             settings);
@@ -148,7 +138,6 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitDomain",
             "Unit Instance",
             "Show whether the unit belongs to the user or the system instance",
-            SystemdCommands.CogGlyph,
             (state, host) => host.Tr(UnitDomainParser.ToEnglishText(state.Id.Domain)),
             registry,
             settings);
@@ -192,12 +181,11 @@ internal static class SystemdDisplayCommands
         string commandName,
         string displayName,
         string description,
-        string icon,
         Func<UnitState, IPluginHost, string> format,
         UnitRegistry registry,
         SystemdSettings settings)
     {
-        CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(commandName, displayName, description, icon);
+        CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(commandName, displayName, description);
         return new UnitDisplayCommand(descriptor, format, registry, settings);
     }
 }

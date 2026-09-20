@@ -25,7 +25,6 @@ internal static class UnitActionCommands
             SystemdCommands.Start,
             "Start Unit",
             "Start the unit and wait for systemd to report the result",
-            SystemdCommands.PlayGlyph,
             UnitAction.Start,
             registry,
             settings);
@@ -34,7 +33,6 @@ internal static class UnitActionCommands
             SystemdCommands.Stop,
             "Stop Unit",
             "Stop the unit and wait for systemd to report the result",
-            SystemdCommands.StopGlyph,
             UnitAction.Stop,
             registry,
             settings);
@@ -43,7 +41,6 @@ internal static class UnitActionCommands
             SystemdCommands.Restart,
             "Restart Unit",
             "Restart the unit and wait for systemd to report the result",
-            SystemdCommands.RestartGlyph,
             UnitAction.Restart,
             registry,
             settings);
@@ -52,7 +49,6 @@ internal static class UnitActionCommands
             SystemdCommands.Reload,
             "Reload Unit",
             "Ask the unit to reload its configuration without restarting it",
-            SystemdCommands.RefreshGlyph,
             UnitAction.Reload,
             registry,
             settings);
@@ -61,7 +57,6 @@ internal static class UnitActionCommands
             SystemdCommands.Toggle,
             "Toggle Unit",
             "Stop the unit when it runs, start it when it does not",
-            SystemdCommands.PowerGlyph,
             UnitAction.Toggle,
             registry,
             settings);
@@ -70,7 +65,6 @@ internal static class UnitActionCommands
             SystemdCommands.ResetFailed,
             "Reset Failed Unit",
             "Clear the failed state of the unit without starting or stopping it",
-            SystemdCommands.AlertGlyph,
             UnitAction.ResetFailed,
             registry,
             settings);
@@ -80,12 +74,11 @@ internal static class UnitActionCommands
         string commandName,
         string displayName,
         string description,
-        string icon,
         UnitAction action,
         UnitRegistry registry,
         SystemdSettings settings)
     {
-        CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(commandName, displayName, description, icon);
+        CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(commandName, displayName, description);
         return new UnitActionCommand(descriptor, action, registry, settings);
     }
 }

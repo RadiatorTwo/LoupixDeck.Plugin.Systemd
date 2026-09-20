@@ -27,28 +27,23 @@ internal static class SystemdCommands
     /// <summary>The placeholder the command builder shows for that parameter.</summary>
     public const string UnitTemplate = "({unit})";
 
-    // Glyphs taken from the host's symbol library so they exist in the shipped icon font.
+    /// <summary>
+    /// The category card's glyph, taken from the host's symbol library. Commands themselves declare
+    /// no icon: the host turns a command's icon into a symbol layer on the button it is dropped on,
+    /// and these buttons carry their own text instead.
+    /// </summary>
     public const string CogGlyph = "\U000F0493";
-    public const string PlayGlyph = "\U000F040A";
-    public const string StopGlyph = "\U000F04DB";
-    public const string RestartGlyph = "\U000F0709";
-    public const string RefreshGlyph = "\U000F0450";
-    public const string PowerGlyph = "\U000F0425";
-    public const string AlertGlyph = "\U000F0028";
-    public const string FolderGlyph = "\U000F024B";
 
     /// <summary>Builds the descriptor of a command that acts on the unit in its parameter.</summary>
     public static CommandDescriptor UnitDescriptor(
         string commandName,
         string displayName,
         string description,
-        string icon,
         bool hiddenFromMenu = false) => new()
     {
         CommandName = commandName,
         DisplayName = displayName,
         Group = Group,
-        Icon = icon,
         Description = description,
         ParameterTemplate = UnitTemplate,
         Parameters = [new CommandParameter(UnitParameter, typeof(string))],
