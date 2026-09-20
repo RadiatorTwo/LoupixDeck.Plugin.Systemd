@@ -41,6 +41,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IPluginSettingsPage
             _settingsPage = new SystemdSettingsPage(settings, _registry!, host);
 
             _commands.AddRange(UnitActionCommands.Create(_registry!, settings));
+            _commands.AddRange(SystemdDisplayCommands.Create(_registry!, settings));
         }
         catch (Exception ex)
         {
