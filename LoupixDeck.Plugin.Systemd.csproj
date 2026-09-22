@@ -14,7 +14,7 @@
   <ItemGroup>
     <!-- Restored from nuget.org. The host ships the SDK assembly at runtime,
          so the runtime asset must never be copied next to the plugin. -->
-    <PackageReference Include="LoupixDeck.PluginSdk" Version="1.24.0">
+    <PackageReference Include="LoupixDeck.PluginSdk" Version="1.25.0">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
 

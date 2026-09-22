@@ -2,7 +2,7 @@
   "id": "systemd",
   "name": "Systemd",
   "version": "1.0.0",
-  "sdkVersion": "1.24",
+  "sdkVersion": "1.25",
   "entryAssembly": "LoupixDeck.Plugin.Systemd.dll",
   "platform": "Linux",
   "author": "RadiatorTwo",
