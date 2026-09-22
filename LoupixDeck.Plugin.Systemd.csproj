@@ -14,9 +14,13 @@
   <ItemGroup>
     <!-- Restored from nuget.org. The host ships the SDK assembly at runtime,
          so the runtime asset must never be copied next to the plugin. -->
-    <PackageReference Include="LoupixDeck.PluginSdk" Version="1.24.0">
+    <PackageReference Include="LoupixDeck.PluginSdk" Version="1.25.0">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
+
+    <!-- The plugin talks to systemd over D-Bus. Same library and version as the other
+         Linux plugins in this workspace. -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
   </ItemGroup>
 
   <ItemGroup>
