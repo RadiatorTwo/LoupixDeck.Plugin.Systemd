@@ -174,5 +174,19 @@
   "Enable": "Aktivieren",
   "Disable": "Deaktivieren",
   "Mask": "Maskieren",
-  "Unmask": "Demaskieren"
+  "Unmask": "Demaskieren",
+  "Run Timer Now": "Timer jetzt ausführen",
+  "Start the unit a timer triggers right away, without waiting for the timer": "Startet die Unit, die ein Timer auslöst, sofort, ohne auf den Timer zu warten",
+  "Timer Next Run": "Timer: nächster Lauf",
+  "Show how long until a timer starts its unit next": "Zeigt, wie lange es dauert, bis ein Timer seine Unit das nächste Mal startet",
+  "Timer Last Run": "Timer: letzter Lauf",
+  "Show how long ago a timer last started its unit": "Zeigt, wie lange es her ist, dass ein Timer seine Unit zuletzt gestartet hat",
+  "Not a timer": "Kein Timer",
+  "Not scheduled": "Nicht geplant",
+  "Never": "Nie",
+  "Run Now": "Jetzt ausführen",
+  "Next Run": "Nächster Lauf",
+  "Last Run": "Letzter Lauf",
+  "in {0}": "in {0}",
+  "{0} ago": "vor {0}"
 }

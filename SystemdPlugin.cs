@@ -43,6 +43,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IMenuContributor, IPluginSetti
             _settingsPage = new SystemdSettingsPage(settings, _registry!, host);
 
             _commands.AddRange(UnitActionCommands.Create(_registry!, settings));
+            _commands.Add(TimerUnits.CreateRunNow(_registry!, settings));
 
             IEnumerable<IPluginCommand> displays = SystemdDisplayCommands.Create(_registry!, settings);
             List<string> displayCommandNames = [];

@@ -259,6 +259,14 @@ internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings setting
             new() { Name = Label(unit, "Remove from Favorites"), CommandName = SystemdCommands.RemoveFavorite, Parameters = parameters }
         ];
 
+        // A timer is mostly pressed to run its job now and looked at for when it runs next.
+        if (TimerUnits.IsTimer(id))
+        {
+            actions.Insert(0, new MenuNode { Name = Label(unit, "Run Now"), CommandName = TimerUnits.RunNow, Parameters = parameters });
+            actions.Add(new MenuNode { Name = Label(unit, "Next Run"), CommandName = SystemdCommands.Prefix + "TimerNextRun", Parameters = parameters });
+            actions.Add(new MenuNode { Name = Label(unit, "Last Run"), CommandName = SystemdCommands.Prefix + "TimerLastRun", Parameters = parameters });
+        }
+
         // The unit file changes sit in a group of their own, and only once the user opted in, so
         // they are never picked by mistake for a runtime action.
         if (settings.AllowPersistentActions)

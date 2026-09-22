@@ -538,7 +538,7 @@ internal sealed class UnitRegistry : IDisposable
             context.PathToUnit[objectPath] = id;
         }
 
-        DBusResult<UnitProperties> properties = await context.Manager.GetPropertiesAsync(objectPath).ConfigureAwait(false);
+        DBusResult<UnitProperties> properties = await context.Manager.GetPropertiesAsync(objectPath, TimerUnits.IsTimer(id)).ConfigureAwait(false);
 
         if (!properties.IsSuccess)
         {
@@ -567,6 +567,9 @@ internal sealed class UnitRegistry : IDisposable
             CanStart = value.CanStart,
             CanStop = value.CanStop,
             CanReload = value.CanReload,
+            NextElapse = value.NextElapse,
+            LastTrigger = value.LastTrigger,
+            TriggerUnit = value.TriggerUnit,
             // A unit systemd loads but does not find on disk reports load state not-found.
             Availability = string.Equals(value.LoadState, "not-found", StringComparison.Ordinal)
                 ? UnitAvailability.NotFound

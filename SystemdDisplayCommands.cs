@@ -139,6 +139,22 @@ internal static class SystemdDisplayCommands
             settings);
 
         yield return Build(
+            SystemdCommands.Prefix + "TimerNextRun",
+            "Timer Next Run",
+            "Show how long until a timer starts its unit next",
+            FormatNextRun,
+            registry,
+            settings);
+
+        yield return Build(
+            SystemdCommands.Prefix + "TimerLastRun",
+            "Timer Last Run",
+            "Show how long ago a timer last started its unit",
+            FormatLastRun,
+            registry,
+            settings);
+
+        yield return Build(
             SystemdCommands.Prefix + "UnitDomain",
             "Unit Instance",
             "Show whether the unit belongs to the user or the system instance",
@@ -168,24 +184,63 @@ internal static class SystemdDisplayCommands
             return ctx.Host.Tr(SystemdCommands.StateText(state));
         }
 
-        TimeSpan uptime = DateTimeOffset.UtcNow - since;
+        return FormatSpan(DateTimeOffset.UtcNow - since);
+    }
 
-        if (uptime < TimeSpan.Zero)
+    private static string FormatNextRun(UnitState state, CommandContext ctx)
+    {
+        if (!TimerUnits.IsTimer(state.Id))
         {
-            uptime = TimeSpan.Zero;
+            return ctx.Host.Tr("Not a timer");
         }
 
-        if (uptime.TotalDays >= 1)
+        if (state.NextElapse is not { } next)
         {
-            return string.Format(CultureInfo.InvariantCulture, "{0}d {1}h", (int)uptime.TotalDays, uptime.Hours);
+            return state.Availability == UnitAvailability.Known
+                ? ctx.Host.Tr("Not scheduled")
+                : ctx.Host.Tr(SystemdCommands.StateText(state));
         }
 
-        if (uptime.TotalHours >= 1)
+        // A template rather than two words, so a language can put the duration where it belongs.
+        return string.Format(CultureInfo.InvariantCulture, ctx.Host.Tr("in {0}"), FormatSpan(next - DateTimeOffset.UtcNow));
+    }
+
+    private static string FormatLastRun(UnitState state, CommandContext ctx)
+    {
+        if (!TimerUnits.IsTimer(state.Id))
         {
-            return string.Format(CultureInfo.InvariantCulture, "{0}h {1}m", (int)uptime.TotalHours, uptime.Minutes);
+            return ctx.Host.Tr("Not a timer");
         }
 
-        return string.Format(CultureInfo.InvariantCulture, "{0}m {1}s", (int)uptime.TotalMinutes, uptime.Seconds);
+        if (state.LastTrigger is not { } last)
+        {
+            return state.Availability == UnitAvailability.Known
+                ? ctx.Host.Tr("Never")
+                : ctx.Host.Tr(SystemdCommands.StateText(state));
+        }
+
+        return string.Format(CultureInfo.InvariantCulture, ctx.Host.Tr("{0} ago"), FormatSpan(DateTimeOffset.UtcNow - last));
+    }
+
+    /// <summary>A duration in the two largest units that fit on a button, for example "2h 5m".</summary>
+    private static string FormatSpan(TimeSpan span)
+    {
+        if (span < TimeSpan.Zero)
+        {
+            span = TimeSpan.Zero;
+        }
+
+        if (span.TotalDays >= 1)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0}d {1}h", (int)span.TotalDays, span.Hours);
+        }
+
+        if (span.TotalHours >= 1)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0}h {1}m", (int)span.TotalHours, span.Minutes);
+        }
+
+        return string.Format(CultureInfo.InvariantCulture, "{0}m {1}s", (int)span.TotalMinutes, span.Seconds);
     }
 
     private static IPluginCommand Build(

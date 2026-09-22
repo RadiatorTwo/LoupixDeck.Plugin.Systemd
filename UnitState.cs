@@ -53,6 +53,15 @@ public sealed record UnitState
     /// <summary>The result of the last run of a service, for example success or exit-code.</summary>
     public string Result { get; init; } = string.Empty;
 
+    /// <summary>When a timer elapses next, or null for any other unit and for a timer with nothing scheduled.</summary>
+    public DateTimeOffset? NextElapse { get; init; }
+
+    /// <summary>When a timer last elapsed, or null when it never did.</summary>
+    public DateTimeOffset? LastTrigger { get; init; }
+
+    /// <summary>The unit a timer starts, usually the service of the same name; empty for other units.</summary>
+    public string TriggerUnit { get; init; } = string.Empty;
+
     public bool CanStart { get; init; }
 
     public bool CanStop { get; init; }

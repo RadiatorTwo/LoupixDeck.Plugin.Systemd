@@ -174,5 +174,19 @@
   "Enable": "Habilitar",
   "Disable": "Deshabilitar",
   "Mask": "Enmascarar",
-  "Unmask": "Desenmascarar"
+  "Unmask": "Desenmascarar",
+  "Run Timer Now": "Ejecutar temporizador ahora",
+  "Start the unit a timer triggers right away, without waiting for the timer": "Inicia de inmediato la unidad que activa un temporizador, sin esperar al temporizador",
+  "Timer Next Run": "Temporizador: próxima ejecución",
+  "Show how long until a timer starts its unit next": "Muestra cuánto falta para que un temporizador inicie su unidad la próxima vez",
+  "Timer Last Run": "Temporizador: última ejecución",
+  "Show how long ago a timer last started its unit": "Muestra hace cuánto un temporizador inició su unidad por última vez",
+  "Not a timer": "No es un temporizador",
+  "Not scheduled": "No programado",
+  "Never": "Nunca",
+  "Run Now": "Ejecutar ahora",
+  "Next Run": "Próxima ejecución",
+  "Last Run": "Última ejecución",
+  "in {0}": "en {0}",
+  "{0} ago": "hace {0}"
 }

@@ -13,9 +13,13 @@ Linux only.
 - Runtime actions on a unit: start, stop, restart, reload, toggle and reset-failed. Each one waits
   for the systemd job it created, so a button reports what actually happened rather than that the
   request was accepted.
-- Ten touch displays for one unit each: status, name, description, sub state, load state, unit
-  file state, uptime, main process, last result and instance. The status button prints the unit
+- Twelve touch displays for one unit each: status, name, description, sub state, load state, unit
+  file state, uptime, main process, last result, instance, and for timers the next and the last
+  run. The status button prints the unit
   name above the state; setting its second value to `0` leaves the name out.
+- Timers: **Run Timer Now** starts the unit a timer triggers right away, without waiting for the
+  timer and without touching its schedule. Start and stop on the timer itself arm and disarm it.
+  Add `timer` to **Unit types** to list timers in the command menu.
 - Persistent actions on a unit: enable, disable, mask and unmask. They are off until **Allow
   persistent actions** is switched on, carry "(persistent)" in their name and, by default, run only
   on a second press within three seconds. See [Persistent actions](#persistent-actions).

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using LoupixDeck.PluginSdk;
 using Tmds.DBus.Protocol;
 
@@ -24,7 +25,10 @@ internal readonly record struct UnitProperties(
     string Result,
     bool CanStart,
     bool CanStop,
-    bool CanReload);
+    bool CanReload,
+    DateTimeOffset? NextElapse,
+    DateTimeOffset? LastTrigger,
+    string TriggerUnit);
 
 /// <summary>
 /// Talks to org.freedesktop.systemd1.Manager of one instance: lists units, reads their properties,
@@ -38,6 +42,7 @@ internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger
     public const string ManagerInterface = "org.freedesktop.systemd1.Manager";
     public const string UnitInterface = "org.freedesktop.systemd1.Unit";
     public const string ServiceInterface = "org.freedesktop.systemd1.Service";
+    public const string TimerInterface = "org.freedesktop.systemd1.Timer";
 
     /// <summary>The job mode every action uses. "replace" is what systemctl does by default.</summary>
     private const string JobMode = "replace";
@@ -152,8 +157,11 @@ internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger
             (ref MessageWriter writer) => writer.WriteString(unitName)).ConfigureAwait(false);
     }
 
-    /// <summary>Reads the Unit and Service properties of one object path in one go.</summary>
-    public async Task<DBusResult<UnitProperties>> GetPropertiesAsync(string objectPath)
+    /// <summary>
+    /// Reads the Unit and Service properties of one object path in one go, and the Timer
+    /// properties as well when <paramref name="isTimer"/> says the unit is one.
+    /// </summary>
+    public async Task<DBusResult<UnitProperties>> GetPropertiesAsync(string objectPath, bool isTimer)
     {
         DBusClient? client = connection.Client;
 
@@ -176,6 +184,16 @@ internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger
             .GetAllPropertiesAsync(Service, objectPath, ServiceInterface)
             .ConfigureAwait(false);
 
+        Dictionary<string, VariantValue> timer = [];
+
+        if (isTimer)
+        {
+            DBusResult<Dictionary<string, VariantValue>> timerResult = await client
+                .GetAllPropertiesAsync(Service, objectPath, TimerInterface)
+                .ConfigureAwait(false);
+            timer = timerResult.Value;
+        }
+
         UnitProperties properties = new(
             ReadString(unit.Value, "Description"),
             ReadString(unit.Value, "LoadState"),
@@ -187,7 +205,10 @@ internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger
             ReadString(service.Value, "Result"),
             ReadBool(unit.Value, "CanStart"),
             ReadBool(unit.Value, "CanStop"),
-            ReadBool(unit.Value, "CanReload"));
+            ReadBool(unit.Value, "CanReload"),
+            ReadNextElapse(timer),
+            ReadTimestamp(timer, "LastTriggerUSec"),
+            ReadString(timer, "Unit"));
 
         return new DBusResult<UnitProperties>(properties, UnitCallOutcome.Ok);
     }
@@ -465,6 +486,36 @@ internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger
 
     private static uint ReadUInt32(Dictionary<string, VariantValue> properties, string key) =>
         properties.TryGetValue(key, out VariantValue value) ? value.GetUInt32() : 0u;
+
+    /// <summary>
+    /// The next time a timer elapses. systemd reports a calendar deadline and a deadline on the
+    /// monotonic clock separately; the monotonic one is moved onto the wall clock the same way
+    /// <c>systemctl list-timers</c> does it, and the earlier of the two wins.
+    /// </summary>
+    private static DateTimeOffset? ReadNextElapse(Dictionary<string, VariantValue> timer)
+    {
+        DateTimeOffset? realtime = ReadTimestamp(timer, "NextElapseUSecRealtime");
+        DateTimeOffset? monotonic = null;
+
+        if (timer.TryGetValue("NextElapseUSecMonotonic", out VariantValue value))
+        {
+            ulong microseconds = value.GetUInt64();
+
+            if (microseconds != 0 && microseconds != ulong.MaxValue)
+            {
+                // Stopwatch reads CLOCK_MONOTONIC on Linux, the clock systemd's value counts on.
+                double nowMicroseconds = Stopwatch.GetTimestamp() * (1_000_000.0 / Stopwatch.Frequency);
+                monotonic = DateTimeOffset.UtcNow.AddTicks((long)((microseconds - nowMicroseconds) * 10));
+            }
+        }
+
+        if (realtime is null)
+        {
+            return monotonic;
+        }
+
+        return monotonic is null || realtime < monotonic ? realtime : monotonic;
+    }
 
     /// <summary>Reads a systemd timestamp, which counts microseconds since the epoch. 0 means never.</summary>
     private static DateTimeOffset? ReadTimestamp(Dictionary<string, VariantValue> properties, string key)
