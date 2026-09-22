@@ -158,10 +158,11 @@ internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger
     }
 
     /// <summary>
-    /// Reads the Unit and Service properties of one object path in one go, and the Timer
-    /// properties as well when <paramref name="isTimer"/> says the unit is one.
+    /// Reads the Unit properties of one object path, plus the Service or Timer properties when
+    /// <paramref name="unitType"/> says the unit is one. Asking any other unit for them only
+    /// produces an UnknownInterface error and a warning in the log.
     /// </summary>
-    public async Task<DBusResult<UnitProperties>> GetPropertiesAsync(string objectPath, bool isTimer)
+    public async Task<DBusResult<UnitProperties>> GetPropertiesAsync(string objectPath, string unitType)
     {
         DBusClient? client = connection.Client;
 
@@ -179,19 +180,16 @@ internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger
             return new DBusResult<UnitProperties>(default, unit.Outcome);
         }
 
-        // Only services carry these, and a unit of another type simply reports nothing.
-        DBusResult<Dictionary<string, VariantValue>> service = await client
-            .GetAllPropertiesAsync(Service, objectPath, ServiceInterface)
-            .ConfigureAwait(false);
-
+        Dictionary<string, VariantValue> service = [];
         Dictionary<string, VariantValue> timer = [];
 
-        if (isTimer)
+        if (string.Equals(unitType, UnitTypeParser.ServiceValue, StringComparison.Ordinal))
         {
-            DBusResult<Dictionary<string, VariantValue>> timerResult = await client
-                .GetAllPropertiesAsync(Service, objectPath, TimerInterface)
-                .ConfigureAwait(false);
-            timer = timerResult.Value;
+            service = (await client.GetAllPropertiesAsync(Service, objectPath, ServiceInterface).ConfigureAwait(false)).Value;
+        }
+        else if (string.Equals(unitType, UnitTypeParser.TimerValue, StringComparison.Ordinal))
+        {
+            timer = (await client.GetAllPropertiesAsync(Service, objectPath, TimerInterface).ConfigureAwait(false)).Value;
         }
 
         UnitProperties properties = new(
@@ -201,8 +199,8 @@ internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger
             ReadString(unit.Value, "SubState"),
             ReadString(unit.Value, "UnitFileState"),
             ReadTimestamp(unit.Value, "ActiveEnterTimestamp"),
-            ReadUInt32(service.Value, "MainPID"),
-            ReadString(service.Value, "Result"),
+            ReadUInt32(service, "MainPID"),
+            ReadString(service, "Result"),
             ReadBool(unit.Value, "CanStart"),
             ReadBool(unit.Value, "CanStop"),
             ReadBool(unit.Value, "CanReload"),

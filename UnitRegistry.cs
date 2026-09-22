@@ -538,7 +538,7 @@ internal sealed class UnitRegistry : IDisposable
             context.PathToUnit[objectPath] = id;
         }
 
-        DBusResult<UnitProperties> properties = await context.Manager.GetPropertiesAsync(objectPath, TimerUnits.IsTimer(id)).ConfigureAwait(false);
+        DBusResult<UnitProperties> properties = await context.Manager.GetPropertiesAsync(objectPath, UnitTypeParser.Of(id.Name)).ConfigureAwait(false);
 
         if (!properties.IsSuccess)
         {
