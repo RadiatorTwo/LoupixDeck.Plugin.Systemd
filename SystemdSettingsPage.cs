@@ -130,6 +130,28 @@ internal sealed class SystemdSettingsPage(SystemdSettings settings, UnitRegistry
             Kind = PluginSettingKind.Number,
             Description = "How long a button waits for the unit to finish starting or stopping (1000 to 120000). The unit keeps going when the wait runs out.",
             DefaultValue = SystemdSettings.DefaultCommandTimeoutMilliseconds
+        },
+        new PluginSettingDescriptor
+        {
+            Key = "heading:persistent",
+            Label = "Persistent actions",
+            Kind = PluginSettingKind.Heading
+        },
+        new PluginSettingDescriptor
+        {
+            Key = SystemdSettings.AllowPersistentKey,
+            Label = "Allow persistent actions",
+            Kind = PluginSettingKind.Toggle,
+            Description = "Lets buttons enable, disable, mask and unmask units. These change the unit file state and survive a reboot, unlike start and stop. Off, those buttons do nothing.",
+            DefaultValue = SystemdSettings.DefaultAllowPersistent
+        },
+        new PluginSettingDescriptor
+        {
+            Key = SystemdSettings.ConfirmPersistentKey,
+            Label = "Confirm with a second press",
+            Kind = PluginSettingKind.Toggle,
+            Description = "A persistent action runs only when the button is pressed again within three seconds.",
+            DefaultValue = SystemdSettings.DefaultConfirmPersistent
         }
     ];
 

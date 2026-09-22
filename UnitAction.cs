@@ -1,6 +1,9 @@
 namespace LoupixDeck.Plugin.Systemd;
 
-/// <summary>The runtime actions this version offers. Nothing here changes a unit file.</summary>
+/// <summary>
+/// The actions the plugin offers. The runtime actions leave no trace after a reboot; the four
+/// persistent ones at the end change the unit file state and need the opt-in in the settings.
+/// </summary>
 public enum UnitAction
 {
     Start,
@@ -12,13 +15,29 @@ public enum UnitAction
     Toggle,
 
     /// <summary>Clears the failed state without touching the unit itself.</summary>
-    ResetFailed
+    ResetFailed,
+
+    /// <summary>Makes the unit start on its own at boot or login. Persistent.</summary>
+    Enable,
+
+    /// <summary>Undoes <see cref="Enable"/>. Persistent.</summary>
+    Disable,
+
+    /// <summary>Links the unit to /dev/null so nothing can start it. Persistent.</summary>
+    Mask,
+
+    /// <summary>Undoes <see cref="Mask"/>. Persistent.</summary>
+    Unmask
 }
 
 /// <summary>How a requested action ended, once its systemd job finished.</summary>
 /// <param name="Outcome">The classification a button reacts to.</param>
 /// <param name="JobResult">systemd's own result string, or empty when no job was created.</param>
-public readonly record struct UnitActionResult(UnitCallOutcome Outcome, string JobResult)
+/// <param name="Changed">
+/// False when a persistent action found the unit already in the requested state, so nothing was
+/// written. Runtime actions always report true.
+/// </param>
+public readonly record struct UnitActionResult(UnitCallOutcome Outcome, string JobResult, bool Changed = true)
 {
     public bool IsSuccess => Outcome == UnitCallOutcome.Ok;
 }
@@ -64,7 +83,28 @@ internal static class UnitActionParser
             UnitAction.Restart => "Restart",
             UnitAction.Reload => "Reload",
             UnitAction.Toggle => "Toggle",
+            UnitAction.Enable => "Enable",
+            UnitAction.Disable => "Disable",
+            UnitAction.Mask => "Mask",
+            UnitAction.Unmask => "Unmask",
             _ => "Reset Failed"
+        };
+    }
+
+    /// <summary>True for the actions that change a unit file and survive a reboot.</summary>
+    public static bool IsPersistent(UnitAction action) =>
+        action is UnitAction.Enable or UnitAction.Disable or UnitAction.Mask or UnitAction.Unmask;
+
+    /// <summary>What a button shows after a persistent action did its work.</summary>
+    public static string ToDoneText(UnitAction action)
+    {
+        return action switch
+        {
+            UnitAction.Enable => "Enabled",
+            UnitAction.Disable => "Disabled",
+            UnitAction.Mask => "Masked",
+            UnitAction.Unmask => "Unmasked",
+            _ => "Done"
         };
     }
 }

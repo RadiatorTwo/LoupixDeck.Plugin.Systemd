@@ -259,6 +259,24 @@ internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings setting
             new() { Name = Label(unit, "Remove from Favorites"), CommandName = SystemdCommands.RemoveFavorite, Parameters = parameters }
         ];
 
+        // The unit file changes sit in a group of their own, and only once the user opted in, so
+        // they are never picked by mistake for a runtime action.
+        if (settings.AllowPersistentActions)
+        {
+            actions.Add(new MenuNode
+            {
+                Name = "Persistent Changes",
+                CommandName = string.Empty,
+                Children =
+                [
+                    new() { Name = Label(unit, "Enable"), CommandName = SystemdCommands.Enable, Parameters = parameters },
+                    new() { Name = Label(unit, "Disable"), CommandName = SystemdCommands.Disable, Parameters = parameters },
+                    new() { Name = Label(unit, "Mask"), CommandName = SystemdCommands.Mask, Parameters = parameters },
+                    new() { Name = Label(unit, "Unmask"), CommandName = SystemdCommands.Unmask, Parameters = parameters }
+                ]
+            });
+        }
+
         return new MenuNode
         {
             // MenuNode carries no icon, so the description is what tells two similar units apart.

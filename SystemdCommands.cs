@@ -17,6 +17,10 @@ internal static class SystemdCommands
     public const string Reload = Prefix + "Reload";
     public const string Toggle = Prefix + "Toggle";
     public const string ResetFailed = Prefix + "ResetFailed";
+    public const string Enable = Prefix + "Enable";
+    public const string Disable = Prefix + "Disable";
+    public const string Mask = Prefix + "Mask";
+    public const string Unmask = Prefix + "Unmask";
     public const string OpenUnits = Prefix + "OpenUnits";
     public const string AddFavorite = Prefix + "AddFavorite";
     public const string RemoveFavorite = Prefix + "RemoveFavorite";

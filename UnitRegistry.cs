@@ -197,6 +197,11 @@ internal sealed class UnitRegistry : IDisposable
             return Finish(id, new UnitActionResult(reset, string.Empty));
         }
 
+        if (UnitActionParser.IsPersistent(action))
+        {
+            return Finish(id, await ChangeUnitFileAsync(context, id, action, timeout).ConfigureAwait(false));
+        }
+
         UnitAction effective = action == UnitAction.Toggle
             ? await ResolveToggleAsync(id).ConfigureAwait(false)
             : action;
@@ -216,6 +221,35 @@ internal sealed class UnitRegistry : IDisposable
 
         string result = await context.Jobs.WaitAsync(job.Value, timeout).ConfigureAwait(false);
         return Finish(id, new UnitActionResult(JobTracker.ToOutcome(result), result));
+    }
+
+    /// <summary>
+    /// Enables, disables, masks or unmasks a unit and reloads the manager afterwards, as systemctl
+    /// does. The unit file change is what the user asked for, so a reload that fails afterwards is
+    /// only logged: the change is on disk and shows up with the next reload.
+    /// </summary>
+    private async Task<UnitActionResult> ChangeUnitFileAsync(DomainContext context, UnitId id, UnitAction action, TimeSpan timeout)
+    {
+        DBusResult<int> changes = await context.Manager.ChangeUnitFileAsync(action, id.Name).ConfigureAwait(false);
+
+        if (!changes.IsSuccess)
+        {
+            return new UnitActionResult(changes.Outcome, string.Empty);
+        }
+
+        if (changes.Value == 0)
+        {
+            return new UnitActionResult(UnitCallOutcome.Ok, string.Empty, Changed: false);
+        }
+
+        UnitCallOutcome reload = await context.Manager.ReloadDaemonAsync(timeout).ConfigureAwait(false);
+
+        if (reload != UnitCallOutcome.Ok)
+        {
+            _logger.Info($"Systemd: {UnitActionParser.ToEnglishText(action)} on {id} is written, but the daemon-reload after it ended with {reload}.");
+        }
+
+        return new UnitActionResult(UnitCallOutcome.Ok, string.Empty);
     }
 
     /// <summary>

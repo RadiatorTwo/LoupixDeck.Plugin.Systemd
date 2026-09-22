@@ -67,6 +67,13 @@ internal abstract class UnitCommandBase(
 
         if (result.IsSuccess)
         {
+            // A runtime action shows itself on the unit's state; a unit file change does not, so
+            // the button says what was written, or that there was nothing to write.
+            if (UnitActionParser.IsPersistent(action))
+            {
+                ShowOverlay(ctx, ctx.Host.Tr(result.Changed ? UnitActionParser.ToDoneText(action) : "Already in that state"));
+            }
+
             return;
         }
 

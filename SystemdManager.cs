@@ -28,7 +28,7 @@ internal readonly record struct UnitProperties(
 
 /// <summary>
 /// Talks to org.freedesktop.systemd1.Manager of one instance: lists units, reads their properties,
-/// runs the five runtime actions and forwards the manager's signals. It holds no unit state of its
+/// runs the runtime and unit file actions and forwards the manager's signals. It holds no unit state of its
 /// own — that is the registry's job.
 /// </summary>
 internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger logger) : IDisposable
@@ -221,6 +221,82 @@ internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger
     }
 
     /// <summary>
+    /// Changes the unit file state: enable, disable, mask or unmask. The change is persistent
+    /// (runtime false) and never forced, exactly like a plain <c>systemctl enable</c>. Returns how
+    /// many symlinks systemd created or removed; 0 means the unit already was in that state, or,
+    /// for enable, that it has no install section to act on.
+    /// </summary>
+    public async Task<DBusResult<int>> ChangeUnitFileAsync(UnitAction action, string unitName)
+    {
+        DBusClient? client = connection.Client;
+
+        if (client is null)
+        {
+            return new DBusResult<int>(0, UnitCallOutcome.Unavailable);
+        }
+
+        string[] files = [unitName];
+
+        // Enable and mask take a force flag, disable and unmask do not; enable also returns
+        // whether the unit carries install information in front of the change list.
+        return action switch
+        {
+            UnitAction.Enable => await client.CallAsync(
+                Service, ManagerPath, ManagerInterface, "EnableUnitFiles",
+                ReadEnableChanges, 0, "asbb",
+                (ref MessageWriter writer) =>
+                {
+                    writer.WriteArray(files);
+                    writer.WriteBool(false);
+                    writer.WriteBool(false);
+                }).ConfigureAwait(false),
+            UnitAction.Mask => await client.CallAsync(
+                Service, ManagerPath, ManagerInterface, "MaskUnitFiles",
+                ReadChanges, 0, "asbb",
+                (ref MessageWriter writer) =>
+                {
+                    writer.WriteArray(files);
+                    writer.WriteBool(false);
+                    writer.WriteBool(false);
+                }).ConfigureAwait(false),
+            UnitAction.Disable => await client.CallAsync(
+                Service, ManagerPath, ManagerInterface, "DisableUnitFiles",
+                ReadChanges, 0, "asb",
+                (ref MessageWriter writer) =>
+                {
+                    writer.WriteArray(files);
+                    writer.WriteBool(false);
+                }).ConfigureAwait(false),
+            UnitAction.Unmask => await client.CallAsync(
+                Service, ManagerPath, ManagerInterface, "UnmaskUnitFiles",
+                ReadChanges, 0, "asb",
+                (ref MessageWriter writer) =>
+                {
+                    writer.WriteArray(files);
+                    writer.WriteBool(false);
+                }).ConfigureAwait(false),
+            _ => new DBusResult<int>(0, UnitCallOutcome.Failed)
+        };
+    }
+
+    /// <summary>
+    /// Runs a daemon-reload, which is what makes a changed unit file state visible. systemctl does
+    /// the same after every enable, disable, mask and unmask. The call returns once the reload is
+    /// done, which can take longer than an ordinary call.
+    /// </summary>
+    public async Task<UnitCallOutcome> ReloadDaemonAsync(TimeSpan timeout)
+    {
+        DBusClient? client = connection.Client;
+
+        if (client is null)
+        {
+            return UnitCallOutcome.Unavailable;
+        }
+
+        return await client.CallAsync(Service, ManagerPath, ManagerInterface, "Reload", timeout: timeout).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Runs one of the job-producing actions. The interactive authorization flag is never set, so
     /// PolicyKit answers with a denial instead of prompting the user for a password.
     /// </summary>
@@ -320,6 +396,37 @@ internal sealed class SystemdManager(SystemdConnection connection, IPluginLogger
         }
 
         return entries;
+    }
+
+    /// <summary>Counts the entries of the a(sss) change list a unit file call returns.</summary>
+    private static int ReadChanges(Message message, object? state)
+    {
+        Reader reader = message.GetBodyReader();
+        return CountChanges(ref reader);
+    }
+
+    /// <summary>EnableUnitFiles puts a carries-install-info flag in front of the change list.</summary>
+    private static int ReadEnableChanges(Message message, object? state)
+    {
+        Reader reader = message.GetBodyReader();
+        reader.ReadBool();
+        return CountChanges(ref reader);
+    }
+
+    private static int CountChanges(ref Reader reader)
+    {
+        int count = 0;
+
+        ArrayEnd end = reader.ReadArrayStart(DBusType.Struct);
+        while (reader.HasNext(end))
+        {
+            reader.ReadString(); // type: symlink or unlink
+            reader.ReadString(); // file name
+            reader.ReadString(); // destination
+            count++;
+        }
+
+        return count;
     }
 
     private static (string JobPath, string Result) ReadJobRemoved(Message message, object? state)

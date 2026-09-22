@@ -20,6 +20,8 @@ internal sealed class SystemdSettings(IPluginSettings settings)
     public const string DefaultActionKey = "folder:defaultAction";
     public const string DBusTimeoutKey = "behavior:dbusTimeoutMs";
     public const string CommandTimeoutKey = "behavior:commandTimeoutMs";
+    public const string AllowPersistentKey = "persistent:allow";
+    public const string ConfirmPersistentKey = "persistent:confirm";
 
     public const bool DefaultShowSystemUnits = true;
     public const bool DefaultShowInactive = true;
@@ -29,6 +31,8 @@ internal sealed class SystemdSettings(IPluginSettings settings)
     public const string DefaultAction = UnitActionParser.ToggleValue;
     public const int DefaultDBusTimeoutMilliseconds = 2000;
     public const int DefaultCommandTimeoutMilliseconds = 10000;
+    public const bool DefaultAllowPersistent = false;
+    public const bool DefaultConfirmPersistent = true;
 
     /// <summary>How many favorites the slot commands can address.</summary>
     public const int FavoriteSlotCount = 10;
@@ -101,6 +105,15 @@ internal sealed class SystemdSettings(IPluginSettings settings)
     /// <summary>How long a command waits for its systemd job.</summary>
     public TimeSpan CommandTimeout => TimeSpan.FromMilliseconds(
         ReadClamped(CommandTimeoutKey, DefaultCommandTimeoutMilliseconds, MinimumCommandTimeoutMilliseconds, MaximumCommandTimeoutMilliseconds));
+
+    /// <summary>
+    /// The explicit opt-in for enable, disable, mask and unmask. Off by default and off for every
+    /// file written before these actions existed, so no button can change a unit file by accident.
+    /// </summary>
+    public bool AllowPersistentActions => settings.Get(AllowPersistentKey, DefaultAllowPersistent);
+
+    /// <summary>When on, a persistent action runs only on a second press shortly after the first.</summary>
+    public bool ConfirmPersistentActions => settings.Get(ConfirmPersistentKey, DefaultConfirmPersistent);
 
     /// <summary>The favorite behind a slot command, or an invalid id when the slot is empty.</summary>
     public UnitId FavoriteAt(int slotIndex)

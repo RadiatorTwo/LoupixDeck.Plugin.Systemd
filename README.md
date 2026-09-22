@@ -16,13 +16,15 @@ Linux only.
 - Ten touch displays for one unit each: status, name, description, sub state, load state, unit
   file state, uptime, main process, last result and instance. The status button prints the unit
   name above the state; setting its second value to `0` leaves the name out.
+- Persistent actions on a unit: enable, disable, mask and unmask. They are off until **Allow
+  persistent actions** is switched on, carry "(persistent)" in their name and, by default, run only
+  on a second press within three seconds. See [Persistent actions](#persistent-actions).
 - Ten favorite slots whose button state follows the unit: `Inactive`, `Activating`, `Active`,
   `Deactivating`, `Reloading`, `Failed`, `NotFound` and `PermissionDenied`.
 - A touch folder listing the favorite units with their state and a colour per state.
 
 The command menu lists services by default; sockets, timers, mounts and targets can be added in
-the settings. This version changes nothing that survives a reboot: enable, disable, mask and
-unmask are deliberately left out, and so are unit file editing and the journal.
+the settings. Unit file editing and the journal are deliberately left out.
 
 ## Choosing a unit
 
@@ -48,6 +50,25 @@ Dropping a command on a touch button writes a plain caption, not a symbol with a
 The host builds that symbol from the glyph the picker row shows, and a row without an icon of its
 own inherits its category's, so the commands declare a glyph outside the host's curated symbol set
 instead of none at all.
+
+## Persistent actions
+
+Enable, disable, mask and unmask change the unit file state, so unlike start and stop they survive
+a reboot. The plugin treats them apart from the runtime actions:
+
+- **Opt-in.** Off by default, and off for every settings file written before they existed. While
+  off, their buttons show `Persistent actions are off` and do nothing, and the command menu hides
+  them.
+- **Marked.** The command picker lists them as `Enable Unit (persistent)` and so on; the command
+  menu puts them in a **Persistent Changes** group below each unit.
+- **Confirmed.** With **Confirm with a second press** on (the default), the first press shows
+  `Press again to confirm` and only a second press within three seconds runs the action.
+
+After a change the plugin runs a daemon-reload, as `systemctl` does, and the button reports
+`Enabled`, `Disabled`, `Masked` or `Unmasked` — or `Already in that state` when systemd had
+nothing to write. Enabling a unit without an `[Install]` section also ends there. A unit whose
+file lives in `/etc/systemd` or `~/.config/systemd` cannot be masked; systemd refuses that, and
+the button shows `Failed`.
 
 ## Permissions
 
@@ -82,6 +103,8 @@ into `<LoupixDeck>/plugins/systemd/`.
 | Action when an entry is pressed | `toggle`, `start`, `stop`, `restart`, `reload` or `status` |
 | D-Bus timeout | How long one call to systemd may take (250–10000 ms) |
 | Command timeout | How long a button waits for its job (1000–120000 ms). The unit keeps going when the wait runs out. |
+| Allow persistent actions | Lets enable, disable, mask and unmask run; off by default |
+| Confirm with a second press | A persistent action needs a second press within three seconds; on by default |
 
 **List units** prints the units of both instances that pass the search and the filter, with their
 state and description, so their names can be copied into the favorites field. **Add listed units

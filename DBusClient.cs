@@ -50,19 +50,23 @@ internal sealed class DBusClient(DBusConnection connection, IPluginLogger logger
         set => _timeoutMilliseconds = Math.Clamp(value, MinimumTimeoutMilliseconds, MaximumTimeoutMilliseconds);
     }
 
-    /// <summary>Calls a method and ignores the reply body.</summary>
+    /// <summary>
+    /// Calls a method and ignores the reply body. <paramref name="timeout"/> replaces the per-call
+    /// timeout for the rare call that legitimately takes longer, such as a daemon-reload.
+    /// </summary>
     public async Task<UnitCallOutcome> CallAsync(
         string destination,
         string path,
         string @interface,
         string member,
         string? signature = null,
-        DBusArgumentWriter? writeArguments = null)
+        DBusArgumentWriter? writeArguments = null,
+        TimeSpan? timeout = null)
     {
         try
         {
             MessageBuffer message = CreateCall(destination, path, @interface, member, signature, writeArguments);
-            await Connection.CallMethodAsync(message).WaitAsync(Timeout).ConfigureAwait(false);
+            await Connection.CallMethodAsync(message).WaitAsync(timeout ?? Timeout).ConfigureAwait(false);
             return UnitCallOutcome.Ok;
         }
         catch (Exception ex)
