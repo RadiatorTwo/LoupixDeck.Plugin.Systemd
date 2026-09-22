@@ -10,7 +10,7 @@
   "Favorite units": "Unidades favoritas",
   "The units in the units folder, separated by commas, for example user:pipewire.service, system:sshd.service. The command menu fills this in for you.": "Las unidades de la carpeta de unidades, separadas por comas, por ejemplo user:pipewire.service, system:sshd.service. El menú de comandos las rellena por usted.",
   "Unit types": "Tipos de unidad",
-  "The unit types offered in the command menu. This version lists services only.": "Los tipos de unidad que ofrece el menú de comandos. Esta versión solo lista servicios.",
+  "The unit types offered in the command menu, separated by commas: service, socket, timer, mount, target.": "Los tipos de unidad que ofrece el menú de comandos, separados por comas: service, socket, timer, mount, target.",
   "Show stopped units": "Mostrar unidades detenidas",
   "List units that are not running in the command menu.": "Listar en el menú de comandos las unidades que no están en ejecución.",
   "Show unloaded units": "Mostrar unidades no cargadas",
@@ -144,5 +144,10 @@
   "Search": "Búsqueda",
   "All": "Todas",
   "Loaded": "Cargadas",
-  "Active": "Activas"
+  "Active": "Activas",
+  "Services": "Servicios",
+  "Sockets": "Sockets",
+  "Timers": "Temporizadores",
+  "Mounts": "Puntos de montaje",
+  "Targets": "Objetivos"
 }

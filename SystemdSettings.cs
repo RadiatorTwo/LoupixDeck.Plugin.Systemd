@@ -24,7 +24,7 @@ internal sealed class SystemdSettings(IPluginSettings settings)
     public const bool DefaultShowSystemUnits = true;
     public const bool DefaultShowInactive = true;
     public const bool DefaultShowUnloaded = false;
-    public const string DefaultUnitTypes = "service";
+    public const string DefaultUnitTypes = UnitTypeParser.ServiceValue;
     public const string DefaultUnitFilter = UnitFilterParser.AllValue;
     public const string DefaultAction = UnitActionParser.ToggleValue;
     public const int DefaultDBusTimeoutMilliseconds = 2000;
@@ -62,17 +62,11 @@ internal sealed class SystemdSettings(IPluginSettings settings)
     public string UnitSearch => (settings.Get(UnitSearchKey, string.Empty) ?? string.Empty).Trim();
 
     /// <summary>
-    /// The unit types offered in the menu. This version lists services only, but the value is
-    /// already stored so an older file keeps working once more types are added.
+    /// The unit types the selector lists. An older file stores "service" or nothing at all, and
+    /// both read back as services only, which is what the plugin listed before.
     /// </summary>
-    public IReadOnlyList<string> UnitTypes
-    {
-        get
-        {
-            IReadOnlyList<string> types = SystemdSettingsList.Parse(settings.Get(UnitTypesKey, DefaultUnitTypes));
-            return types.Count == 0 ? [DefaultUnitTypes] : types;
-        }
-    }
+    public IReadOnlyList<string> UnitTypes =>
+        UnitTypeParser.Parse(SystemdSettingsList.Parse(settings.Get(UnitTypesKey, DefaultUnitTypes)));
 
     /// <summary>The units shown in the folder and offered first in the menu.</summary>
     public IReadOnlyList<UnitId> Favorites

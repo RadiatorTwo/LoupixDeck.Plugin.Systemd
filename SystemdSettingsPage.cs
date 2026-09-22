@@ -60,7 +60,7 @@ internal sealed class SystemdSettingsPage(SystemdSettings settings, UnitRegistry
             Key = SystemdSettings.UnitTypesKey,
             Label = "Unit types",
             Kind = PluginSettingKind.Text,
-            Description = "The unit types offered in the command menu. This version lists services only.",
+            Description = "The unit types offered in the command menu, separated by commas: " + UnitTypeParser.SupportedValues + ".",
             DefaultValue = SystemdSettings.DefaultUnitTypes
         },
         new PluginSettingDescriptor
@@ -236,7 +236,7 @@ internal sealed class SystemdSettingsPage(SystemdSettings settings, UnitRegistry
     /// <summary>The units of one instance, seen through the search term and the filter.</summary>
     private async Task<IReadOnlyList<UnitListEntry>> SelectAsync(UnitDomain domain)
     {
-        IReadOnlyList<UnitListEntry> units = await registry.ListServicesAsync(domain).ConfigureAwait(false);
+        IReadOnlyList<UnitListEntry> units = await registry.ListUnitsAsync(domain, settings.UnitTypes).ConfigureAwait(false);
 
         return UnitMatch.Select(
             units,

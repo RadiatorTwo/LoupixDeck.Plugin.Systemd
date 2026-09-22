@@ -244,22 +244,28 @@ internal sealed class UnitRegistry : IDisposable
     }
 
     /// <summary>
-    /// Lists the service units of a domain. The result is cached, because the command menu is built
+    /// Lists the units of the given types in a domain. The result is cached, because the command menu is built
     /// from it and the host gives a menu contributor only a few seconds.
     /// </summary>
-    public async Task<IReadOnlyList<UnitListEntry>> ListServicesAsync(UnitDomain domain)
+    public async Task<IReadOnlyList<UnitListEntry>> ListUnitsAsync(UnitDomain domain, IReadOnlyList<string> types)
     {
         if (!_domains.TryGetValue(domain, out DomainContext? context) || !context.Connection.IsConnected)
         {
             return [];
         }
 
-        if (context.ListedAt is { } listedAt && DateTimeOffset.UtcNow - listedAt < ListCacheLifetime)
+        IReadOnlyList<string> patterns = UnitTypeParser.ToPatterns(types);
+        string patternKey = string.Join(',', patterns);
+
+        // A listing taken for other types is stale the moment the user changes the setting.
+        if (context.ListedAt is { } listedAt
+            && DateTimeOffset.UtcNow - listedAt < ListCacheLifetime
+            && string.Equals(context.ListedPatterns, patternKey, StringComparison.Ordinal))
         {
             return context.Listing;
         }
 
-        IReadOnlyList<UnitListEntry> listing = await context.Manager.ListUnitsAsync(["*.service"]).ConfigureAwait(false);
+        IReadOnlyList<UnitListEntry> listing = await context.Manager.ListUnitsAsync(patterns).ConfigureAwait(false);
 
         // Remember the object paths right away; a property change for one of them can arrive at
         // any time and would otherwise have to be resolved by unescaping the path.
@@ -272,6 +278,7 @@ internal sealed class UnitRegistry : IDisposable
         }
 
         context.Listing = listing;
+        context.ListedPatterns = patternKey;
         context.ListedAt = DateTimeOffset.UtcNow;
         return listing;
     }
@@ -592,6 +599,9 @@ internal sealed class UnitRegistry : IDisposable
         public IReadOnlyList<UnitListEntry> Listing { get; set; } = [];
 
         public DateTimeOffset? ListedAt { get; set; }
+
+        /// <summary>The name patterns <see cref="Listing"/> was taken for.</summary>
+        public string ListedPatterns { get; set; } = string.Empty;
 
         public bool IsReloading { get; set; }
 

@@ -20,8 +20,9 @@ Linux only.
   `Deactivating`, `Reloading`, `Failed`, `NotFound` and `PermissionDenied`.
 - A touch folder listing the favorite units with their state and a colour per state.
 
-This version offers services only and changes nothing that survives a reboot: enable, disable,
-mask and unmask are deliberately left out, and so are timers, unit file editing and the journal.
+The command menu lists services by default; sockets, timers, mounts and targets can be added in
+the settings. This version changes nothing that survives a reboot: enable, disable, mask and
+unmask are deliberately left out, and so are unit file editing and the journal.
 
 ## Choosing a unit
 
@@ -29,9 +30,11 @@ A unit is stored as `instance:name`, for example `user:pipewire.service` or
 `system:sshd.service`. A name without an instance uses the preferred instance from the settings,
 and a name without a type suffix is read as a service.
 
-The command menu walks to a unit — instance, filter, letter group, unit — and bakes it into the
-command. A menu entry is named after its unit, for example `pipewire — Restart`, so a button
-dropped from it carries the unit name as its caption. Every unit in the menu also offers **Add to
+The command menu walks to a unit — instance, type, filter, letter group, unit — and bakes it into
+the command. The type level appears only when more than one unit type is listed. A menu entry is
+named after its unit, for example `pipewire — Restart`, so a button dropped from it carries the
+unit name as its caption. A service drops its `.service` suffix there; other types keep theirs, so
+`foo.socket` and `foo` stay apart. Every unit in the menu also offers **Add to
 Favorites**, which is how the favorites list is built without typing unit names.
 
 Below an instance the same list appears once per filter — **Failed**, **Active**, **Loaded** and
@@ -72,7 +75,7 @@ into `<LoupixDeck>/plugins/systemd/`.
 | Preferred instance | `user` or `system`, used when a unit carries no prefix |
 | Show system units | Off never opens the system bus at all |
 | Favorite units | The comma list behind the folder and the favorite slots |
-| Unit types | Reserved; this version lists services only |
+| Unit types | Comma list of `service`, `socket`, `timer`, `mount`, `target`; default `service`. With more than one type, the menu groups the units by type |
 | Show stopped / unloaded units | What the command menu lists |
 | Unit search | Narrows the command menu and the listing to matching names and descriptions |
 | Unit filter | What the listing offers: `all`, `loaded`, `active` or `failed` |

@@ -70,15 +70,8 @@ public sealed record UnitState
 
     public DateTimeOffset LastUpdate { get; init; } = DateTimeOffset.UtcNow;
 
-    /// <summary>The unit name without its type suffix, which is what a button has room for.</summary>
-    public string ShortName
-    {
-        get
-        {
-            int separator = Id.Name.LastIndexOf('.');
-            return separator > 0 ? Id.Name[..separator] : Id.Name;
-        }
-    }
+    /// <summary>The unit name as a button shows it; see <see cref="UnitTypeParser.ShortName"/>.</summary>
+    public string ShortName => UnitTypeParser.ShortName(Id.Name);
 
     /// <summary>True while systemd reports the unit as running or reloading.</summary>
     public bool IsActive =>
