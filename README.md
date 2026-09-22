@@ -29,10 +29,17 @@ A unit is stored as `instance:name`, for example `user:pipewire.service` or
 `system:sshd.service`. A name without an instance uses the preferred instance from the settings,
 and a name without a type suffix is read as a service.
 
-The command menu walks to a unit — instance, letter group, unit — and bakes it into the command.
-A menu entry is named after its unit, for example `pipewire — Restart`, so a button dropped from
-it carries the unit name as its caption. Every unit in the menu also offers **Add to Favorites**,
-which is how the favorites list is built without typing unit names.
+The command menu walks to a unit — instance, filter, letter group, unit — and bakes it into the
+command. A menu entry is named after its unit, for example `pipewire — Restart`, so a button
+dropped from it carries the unit name as its caption. Every unit in the menu also offers **Add to
+Favorites**, which is how the favorites list is built without typing unit names.
+
+Below an instance the same list appears once per filter — **Failed**, **Active**, **Loaded** and
+**All** — each with the number of units behind it. A filter that keeps the same units as **All** is
+left out, and when only **All** remains the filter level is skipped entirely. The **Unit search**
+setting narrows every one of those lists to the units whose name or description contains the term,
+and the instance then reads `User Units — Search: blue` so a short list is never mistaken for a
+short machine.
 
 Dropping a command on a touch button writes a plain caption, not a symbol with a label underneath.
 The host builds that symbol from the glyph the picker row shows, and a row without an icon of its
@@ -67,9 +74,13 @@ into `<LoupixDeck>/plugins/systemd/`.
 | Favorite units | The comma list behind the folder and the favorite slots |
 | Unit types | Reserved; this version lists services only |
 | Show stopped / unloaded units | What the command menu lists |
+| Unit search | Narrows the command menu and the listing to matching names and descriptions |
+| Unit filter | What the listing offers: `all`, `loaded`, `active` or `failed` |
 | Action when an entry is pressed | `toggle`, `start`, `stop`, `restart`, `reload` or `status` |
 | D-Bus timeout | How long one call to systemd may take (250–10000 ms) |
 | Command timeout | How long a button waits for its job (1000–120000 ms). The unit keeps going when the wait runs out. |
 
-**List units** prints the units of both instances so their names can be copied into the favorites
-field.
+**List units** prints the units of both instances that pass the search and the filter, with their
+state and description, so their names can be copied into the favorites field. **Add listed units
+to favorites** adds that same list at once, which is how a search narrowed to a few units replaces
+the pick list the SDK has no control for. Both stop after 40 units.

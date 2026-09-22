@@ -135,5 +135,14 @@
   "Status": "Estado",
   "Uptime": "Tiempo activo",
   "Add to Favorites": "A favoritos",
-  "Remove from Favorites": "Quitar de favoritos"
+  "Remove from Favorites": "Quitar de favoritos",
+  "Unit search": "Búsqueda de unidades",
+  "Narrows the command menu and the listing below to the units whose name or description contains this text. Empty shows every unit.": "Limita el menú de comandos y la lista de abajo a las unidades cuyo nombre o descripción contiene este texto. Vacío muestra todas las unidades.",
+  "Unit filter": "Filtro de unidades",
+  "Which units the listing below offers: all, loaded, active, failed. The command menu offers all four as its own groups.": "Qué unidades ofrece la lista de abajo: all, loaded, active, failed. El menú de comandos ofrece los cuatro como grupos propios.",
+  "Add listed units to favorites": "Añadir unidades listadas a favoritos",
+  "Search": "Búsqueda",
+  "All": "Todas",
+  "Loaded": "Cargadas",
+  "Active": "Activas"
 }

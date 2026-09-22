@@ -15,6 +15,8 @@ internal sealed class SystemdSettings(IPluginSettings settings)
     public const string FavoritesKey = "units:favorites";
     public const string ShowInactiveKey = "units:showInactive";
     public const string ShowUnloadedKey = "units:showUnloaded";
+    public const string UnitFilterKey = "units:filter";
+    public const string UnitSearchKey = "units:search";
     public const string DefaultActionKey = "folder:defaultAction";
     public const string DBusTimeoutKey = "behavior:dbusTimeoutMs";
     public const string CommandTimeoutKey = "behavior:commandTimeoutMs";
@@ -23,6 +25,7 @@ internal sealed class SystemdSettings(IPluginSettings settings)
     public const bool DefaultShowInactive = true;
     public const bool DefaultShowUnloaded = false;
     public const string DefaultUnitTypes = "service";
+    public const string DefaultUnitFilter = UnitFilterParser.AllValue;
     public const string DefaultAction = UnitActionParser.ToggleValue;
     public const int DefaultDBusTimeoutMilliseconds = 2000;
     public const int DefaultCommandTimeoutMilliseconds = 10000;
@@ -45,6 +48,18 @@ internal sealed class SystemdSettings(IPluginSettings settings)
     public bool ShowInactiveUnits => settings.Get(ShowInactiveKey, DefaultShowInactive);
 
     public bool ShowUnloadedUnits => settings.Get(ShowUnloadedKey, DefaultShowUnloaded);
+
+    /// <summary>
+    /// Which units the selector offers. An older settings file has no such key, so the absent
+    /// value means the unfiltered list the plugin showed before the filter existed.
+    /// </summary>
+    public UnitFilter UnitFilter => UnitFilterParser.Parse(settings.Get(UnitFilterKey, DefaultUnitFilter));
+
+    /// <summary>
+    /// The term the selector narrows its list to. An empty term keeps every unit, which is what an
+    /// older settings file without the key gets.
+    /// </summary>
+    public string UnitSearch => (settings.Get(UnitSearchKey, string.Empty) ?? string.Empty).Trim();
 
     /// <summary>
     /// The unit types offered in the menu. This version lists services only, but the value is

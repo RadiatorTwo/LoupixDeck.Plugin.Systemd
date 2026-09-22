@@ -135,5 +135,14 @@
   "Status": "Status",
   "Uptime": "Laufzeit",
   "Add to Favorites": "Zu Favoriten",
-  "Remove from Favorites": "Aus Favoriten"
+  "Remove from Favorites": "Aus Favoriten",
+  "Unit search": "Unit-Suche",
+  "Narrows the command menu and the listing below to the units whose name or description contains this text. Empty shows every unit.": "Schränkt das Befehlsmenü und die Liste unten auf die Units ein, deren Name oder Beschreibung diesen Text enthält. Leer zeigt alle Units.",
+  "Unit filter": "Unit-Filter",
+  "Which units the listing below offers: all, loaded, active, failed. The command menu offers all four as its own groups.": "Welche Units die Liste unten anbietet: all, loaded, active, failed. Das Befehlsmenü bietet alle vier als eigene Gruppen an.",
+  "Add listed units to favorites": "Gelistete Units zu Favoriten",
+  "Search": "Suche",
+  "All": "Alle",
+  "Loaded": "Geladen",
+  "Active": "Aktiv"
 }

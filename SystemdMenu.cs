@@ -98,48 +98,88 @@ internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings setting
         return new MenuNode { Name = "Favorite Slots", CommandName = string.Empty, Children = children };
     }
 
+    /// <summary>
+    /// One instance and, below it, the same list seen through each filter. Walking to a unit is the
+    /// only selection the SDK allows, so the filters take the place of the search field: a failed
+    /// unit is two steps away instead of somewhere in a list of hundreds.
+    /// </summary>
     private async Task<MenuNode?> BuildDomainAsync(UnitDomain domain)
     {
         IReadOnlyList<UnitListEntry> units = await registry.ListServicesAsync(domain).ConfigureAwait(false);
-        List<UnitListEntry> visible = [];
 
-        foreach (UnitListEntry unit in units)
-        {
-            if (!settings.ShowInactiveUnits && !IsRunning(unit))
-            {
-                continue;
-            }
-
-            if (!settings.ShowUnloadedUnits && !string.Equals(unit.LoadState, "loaded", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            visible.Add(unit);
-        }
-
-        if (visible.Count == 0)
+        if (units.Count == 0)
         {
             return null;
         }
 
-        visible.Sort((left, right) => string.Compare(left.Name, right.Name, StringComparison.OrdinalIgnoreCase));
+        string search = settings.UnitSearch;
 
+        IReadOnlyList<UnitListEntry> all = Select(units, UnitFilter.All, search);
+
+        if (all.Count == 0)
+        {
+            return null;
+        }
+
+        List<MenuNode> filters = [];
+
+        foreach (UnitFilter filter in UnitMatch.MenuGroups)
+        {
+            IReadOnlyList<UnitListEntry> selected = filter == UnitFilter.All
+                ? all
+                : Select(units, filter, search);
+
+            // A filter that keeps everything is the unfiltered list under another name. Offering it
+            // twice only adds a step between the user and the unit.
+            if (selected.Count == 0 || (filter != UnitFilter.All && selected.Count == all.Count))
+            {
+                continue;
+            }
+
+            filters.Add(new MenuNode
+            {
+                // The count is what tells the user whether a filter is worth opening.
+                Name = $"{host.Tr(UnitFilterParser.ToEnglishText(filter))} ({selected.Count})",
+                CommandName = string.Empty,
+                Children = BuildLetterGroups(domain, selected)
+            });
+        }
+
+        // With nothing to choose between, the filter level is skipped and the units sit directly
+        // under the instance, exactly as they did before the filters existed.
+        List<MenuNode> children = filters.Count > 1 ? filters : BuildLetterGroups(domain, all);
+
+        string name = domain == UnitDomain.System ? "System Units" : "User Units";
+
+        // A search that hides most of the list has to be visible where the list is, not only in the
+        // settings page the user left minutes ago.
+        string label = search.Length == 0 ? name : $"{host.Tr(name)} — {host.Tr("Search")}: {search}";
+
+        return new MenuNode { Name = label, CommandName = string.Empty, Children = children };
+    }
+
+    /// <summary>The units of this instance that the toggles, the filter and the search term keep.</summary>
+    private IReadOnlyList<UnitListEntry> Select(IReadOnlyList<UnitListEntry> units, UnitFilter filter, string search) =>
+        UnitMatch.Select(units, filter, search, settings.ShowInactiveUnits, settings.ShowUnloadedUnits);
+
+    /// <summary>Splits a selected list into the fixed-size groups the picker scrolls through.</summary>
+    private List<MenuNode> BuildLetterGroups(UnitDomain domain, IReadOnlyList<UnitListEntry> units)
+    {
         List<MenuNode> groups = [];
 
-        for (int start = 0; start < visible.Count; start += GroupSize)
+        for (int start = 0; start < units.Count; start += GroupSize)
         {
-            int length = Math.Min(GroupSize, visible.Count - start);
+            int length = Math.Min(GroupSize, units.Count - start);
             List<MenuNode> children = [];
 
             for (int index = start; index < start + length; index++)
             {
-                UnitListEntry unit = visible[index];
+                UnitListEntry unit = units[index];
                 children.Add(BuildUnitNode(new UnitId(domain, unit.Name), unit.Description));
             }
 
-            char first = GroupLetter(visible[start].Name);
-            char last = GroupLetter(visible[start + length - 1].Name);
+            char first = GroupLetter(units[start].Name);
+            char last = GroupLetter(units[start + length - 1].Name);
 
             groups.Add(new MenuNode
             {
@@ -149,8 +189,7 @@ internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings setting
             });
         }
 
-        string name = domain == UnitDomain.System ? "System Units" : "User Units";
-        return new MenuNode { Name = name, CommandName = string.Empty, Children = groups };
+        return groups;
     }
 
     /// <summary>
@@ -213,9 +252,6 @@ internal sealed class SystemdMenu(UnitRegistry registry, SystemdSettings setting
         int separator = unitName.LastIndexOf('.');
         return separator > 0 ? unitName[..separator] : unitName;
     }
-
-    private static bool IsRunning(UnitListEntry unit) =>
-        unit.ActiveState is "active" or "activating" or "reloading";
 
     /// <summary>
     /// The letter a group is named after. A unit name can start with anything, and systemd escapes

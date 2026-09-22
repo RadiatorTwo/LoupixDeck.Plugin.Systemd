@@ -8,7 +8,8 @@ namespace LoupixDeck.Plugin.Systemd;
 /// here. Labels and descriptions are English keys the host translates.
 /// <para>
 /// The SDK has no pick list and no search field, so the choices are text tokens and the unit list
-/// is offered through the "List units" button instead.
+/// is offered through the "List units" button instead. The search term and the filter are ordinary
+/// settings, which is what makes that listing usable on a machine with hundreds of units.
 /// </para>
 /// </summary>
 internal sealed class SystemdSettingsPage(SystemdSettings settings, UnitRegistry registry, IPluginHost host)
@@ -80,6 +81,22 @@ internal sealed class SystemdSettingsPage(SystemdSettings settings, UnitRegistry
         },
         new PluginSettingDescriptor
         {
+            Key = SystemdSettings.UnitSearchKey,
+            Label = "Unit search",
+            Kind = PluginSettingKind.Text,
+            Description = "Narrows the command menu and the listing below to the units whose name or description contains this text. Empty shows every unit.",
+            DefaultValue = string.Empty
+        },
+        new PluginSettingDescriptor
+        {
+            Key = SystemdSettings.UnitFilterKey,
+            Label = "Unit filter",
+            Kind = PluginSettingKind.Text,
+            Description = "Which units the listing below offers: " + UnitFilterParser.SupportedValues + ". The command menu offers all four as its own groups.",
+            DefaultValue = SystemdSettings.DefaultUnitFilter
+        },
+        new PluginSettingDescriptor
+        {
             Key = "heading:folder",
             Label = "Units folder",
             Kind = PluginSettingKind.Heading
@@ -125,14 +142,20 @@ internal sealed class SystemdSettingsPage(SystemdSettings settings, UnitRegistry
         },
         new PluginSettingAction
         {
+            Label = "Add listed units to favorites",
+            Invoke = AddListedUnitsAsync
+        },
+        new PluginSettingAction
+        {
             Label = "Clear favorite units",
             Invoke = ClearFavoritesAsync
         }
     ];
 
     /// <summary>
-    /// Prints the units of every served instance. This is what the missing search field is
-    /// replaced with: the names can be copied straight into the favorites field.
+    /// Prints the units of every served instance that pass the search and the filter. This is what
+    /// the missing search field is replaced with: the names can be copied straight into the
+    /// favorites field, or added to them with the button next to this one.
     /// </summary>
     private async Task<string> ListUnitsAsync()
     {
@@ -147,7 +170,7 @@ internal sealed class SystemdSettingsPage(SystemdSettings settings, UnitRegistry
                 continue;
             }
 
-            IReadOnlyList<UnitListEntry> units = await registry.ListServicesAsync(domain).ConfigureAwait(false);
+            IReadOnlyList<UnitListEntry> units = await SelectAsync(domain).ConfigureAwait(false);
             builder.AppendLine($"{UnitDomainParser.ToEnglishText(domain)}: {units.Count}");
 
             foreach (UnitListEntry unit in units)
@@ -158,12 +181,69 @@ internal sealed class SystemdSettingsPage(SystemdSettings settings, UnitRegistry
                     return builder.ToString();
                 }
 
-                builder.AppendLine($"{UnitDomainParser.ToParameterValue(domain)}:{unit.Name} — {unit.ActiveState}");
+                string description = unit.Description.Length > 0 ? $" — {unit.Description}" : string.Empty;
+                builder.AppendLine($"{UnitDomainParser.ToParameterValue(domain)}:{unit.Name} — {unit.ActiveState}{description}");
                 printed++;
             }
         }
 
         return builder.Length == 0 ? host.Tr("No units") : builder.ToString();
+    }
+
+    /// <summary>
+    /// Adds every unit the listing shows to the favorites. A search that narrows the list to a
+    /// handful is the closest the settings page gets to picking units from a selector, so the same
+    /// search decides what is added.
+    /// </summary>
+    private async Task<string> AddListedUnitsAsync()
+    {
+        int added = 0;
+        int listed = 0;
+
+        foreach (UnitDomain domain in registry.Domains)
+        {
+            if (!registry.IsAvailable(domain))
+            {
+                continue;
+            }
+
+            foreach (UnitListEntry unit in await SelectAsync(domain).ConfigureAwait(false))
+            {
+                if (listed >= ListLimit)
+                {
+                    break;
+                }
+
+                listed++;
+
+                if (settings.AddFavorite(new UnitId(domain, unit.Name)))
+                {
+                    added++;
+                }
+            }
+        }
+
+        if (listed == 0)
+        {
+            return host.Tr("No units");
+        }
+
+        return added == 0
+            ? host.Tr("Already a favorite")
+            : $"{host.Tr("Added to favorites")}: {added}";
+    }
+
+    /// <summary>The units of one instance, seen through the search term and the filter.</summary>
+    private async Task<IReadOnlyList<UnitListEntry>> SelectAsync(UnitDomain domain)
+    {
+        IReadOnlyList<UnitListEntry> units = await registry.ListServicesAsync(domain).ConfigureAwait(false);
+
+        return UnitMatch.Select(
+            units,
+            settings.UnitFilter,
+            settings.UnitSearch,
+            settings.ShowInactiveUnits,
+            settings.ShowUnloadedUnits);
     }
 
     private Task<string> ClearFavoritesAsync()
