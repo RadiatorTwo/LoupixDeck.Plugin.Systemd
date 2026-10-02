@@ -12,6 +12,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Plugin icon, read from the assembly so it does not depend on the install layout. -->
+    <EmbeddedResource Include="icon.png" LogicalName="LoupixDeck.Plugin.Systemd.icon.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Restored from nuget.org. The host ships the SDK assembly at runtime,
          so the runtime asset must never be copied next to the plugin. -->
     <PackageReference Include="LoupixDeck.PluginSdk" Version="1.25.0">
