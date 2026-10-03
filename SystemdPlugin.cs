@@ -27,8 +27,20 @@ public sealed class SystemdPlugin : LoupixPlugin, IMenuContributor, IPluginSetti
         Version = new Version(1, 0, 0),
         SdkVersion = new Version(1, 24, 0),
         Author = "RadiatorTwo",
-        Description = "Monitors and controls systemd user and system units over the native D-Bus API."
+        Description = "Monitors and controls systemd user and system units over the native D-Bus API.",
+        Icon = LoadIcon()
     };
+
+    /// <summary>The plugin icon (icon.png, embedded). Missing data only costs the icon.</summary>
+    private static byte[]? LoadIcon()
+    {
+        using Stream? stream = typeof(SystemdPlugin).Assembly.GetManifestResourceStream("LoupixDeck.Plugin.Systemd.icon.png");
+        if (stream == null) return null;
+
+        using MemoryStream buffer = new();
+        stream.CopyTo(buffer);
+        return buffer.ToArray();
+    }
 
     public override void Initialize(IPluginHost host)
     {
