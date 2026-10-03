@@ -74,7 +74,8 @@ internal static class TimerUnits
         CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(
             RunNow,
             "Run Timer Now",
-            "Start the unit a timer triggers right away, without waiting for the timer");
+            "Start the unit a timer triggers right away, without waiting for the timer",
+            SystemdButtonLayouts.RunTimer);
         return new RunTimerUnitCommand(descriptor, registry, settings);
     }
 }

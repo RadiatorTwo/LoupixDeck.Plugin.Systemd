@@ -45,6 +45,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IMenuContributor, IPluginSetti
     public override void Initialize(IPluginHost host)
     {
         _host = host;
+        SystemdButtonLayouts.Translate = host.Tr;
 
         try
         {
@@ -90,7 +91,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IMenuContributor, IPluginSetti
         new CommandGroupDescriptor
         {
             Group = SystemdCommands.Group,
-            Icon = SystemdCommands.PickerGlyph,
+            Icon = SystemdButtonLayouts.Group,
             Description = "Start, stop and watch systemd units",
             Section = CommandGroupSection.Plugins
         }

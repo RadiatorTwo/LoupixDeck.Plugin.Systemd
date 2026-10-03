@@ -82,6 +82,7 @@ internal static class UnitActionCommands
             "Start Unit",
             "Start the unit and wait for systemd to report the result",
             UnitAction.Start,
+            SystemdButtonLayouts.Start,
             registry,
             settings);
 
@@ -90,6 +91,7 @@ internal static class UnitActionCommands
             "Stop Unit",
             "Stop the unit and wait for systemd to report the result",
             UnitAction.Stop,
+            SystemdButtonLayouts.Stop,
             registry,
             settings);
 
@@ -98,6 +100,7 @@ internal static class UnitActionCommands
             "Restart Unit",
             "Restart the unit and wait for systemd to report the result",
             UnitAction.Restart,
+            SystemdButtonLayouts.Restart,
             registry,
             settings);
 
@@ -106,6 +109,7 @@ internal static class UnitActionCommands
             "Reload Unit",
             "Ask the unit to reload its configuration without restarting it",
             UnitAction.Reload,
+            SystemdButtonLayouts.Reload,
             registry,
             settings);
 
@@ -114,6 +118,7 @@ internal static class UnitActionCommands
             "Toggle Unit",
             "Stop the unit when it runs, start it when it does not",
             UnitAction.Toggle,
+            SystemdButtonLayouts.Toggle,
             registry,
             settings);
 
@@ -122,16 +127,18 @@ internal static class UnitActionCommands
             "Reset Failed Unit",
             "Clear the failed state of the unit without starting or stopping it",
             UnitAction.ResetFailed,
+            SystemdButtonLayouts.ResetFailed,
             registry,
             settings);
 
-        // The persistent actions carry their nature in the name, so the picker never shows
-        // "Disable Unit" next to "Stop Unit" as if the two were alike.
+        // The persistent actions carry their nature in the name and an amber icon, so the picker
+        // never shows "Disable Unit" next to "Stop Unit" as if the two were alike.
         yield return BuildPersistent(
             SystemdCommands.Enable,
             "Enable Unit (persistent)",
             "Make the unit start on its own at boot or login. Changes the unit file state and survives a reboot; needs Allow persistent actions in the settings.",
             UnitAction.Enable,
+            SystemdButtonLayouts.Enable,
             registry,
             settings);
 
@@ -140,6 +147,7 @@ internal static class UnitActionCommands
             "Disable Unit (persistent)",
             "Stop the unit from starting on its own. Changes the unit file state and survives a reboot; needs Allow persistent actions in the settings.",
             UnitAction.Disable,
+            SystemdButtonLayouts.Disable,
             registry,
             settings);
 
@@ -148,6 +156,7 @@ internal static class UnitActionCommands
             "Mask Unit (persistent)",
             "Block the unit so nothing can start it, not even by hand. Changes the unit file state and survives a reboot; needs Allow persistent actions in the settings.",
             UnitAction.Mask,
+            SystemdButtonLayouts.Mask,
             registry,
             settings);
 
@@ -156,6 +165,7 @@ internal static class UnitActionCommands
             "Unmask Unit (persistent)",
             "Lift a mask so the unit can be started again. Changes the unit file state and survives a reboot; needs Allow persistent actions in the settings.",
             UnitAction.Unmask,
+            SystemdButtonLayouts.Unmask,
             registry,
             settings);
     }
@@ -165,10 +175,16 @@ internal static class UnitActionCommands
         string displayName,
         string description,
         UnitAction action,
+        string glyph,
         UnitRegistry registry,
         SystemdSettings settings)
     {
-        CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(commandName, displayName, description);
+        CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(
+            commandName,
+            displayName,
+            description,
+            glyph,
+            color: SystemdButtonLayouts.PersistentColor);
         return new PersistentActionCommand(descriptor, action, registry, settings);
     }
 
@@ -177,10 +193,11 @@ internal static class UnitActionCommands
         string displayName,
         string description,
         UnitAction action,
+        string glyph,
         UnitRegistry registry,
         SystemdSettings settings)
     {
-        CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(commandName, displayName, description);
+        CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(commandName, displayName, description, glyph);
         return new UnitActionCommand(descriptor, action, registry, settings);
     }
 }

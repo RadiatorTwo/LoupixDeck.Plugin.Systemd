@@ -4,7 +4,7 @@ Monitors and controls systemd units from a Loupedeck device. It talks to
 `org.freedesktop.systemd1` over D-Bus directly — it never runs `systemctl`, never starts `sudo`
 and never asks for a password.
 
-Linux only.
+Linux only. Needs LoupixDeck with Plugin SDK 1.28 or newer.
 
 ## What it does
 
@@ -50,10 +50,12 @@ setting narrows every one of those lists to the units whose name or description 
 and the instance then reads `User Units — Search: blue` so a short list is never mistaken for a
 short machine.
 
-Dropping a command on a touch button writes a plain caption, not a symbol with a label underneath.
-The host builds that symbol from the glyph the picker row shows, and a row without an icon of its
-own inherits its category's, so the commands declare a glyph outside the host's curated symbol set
-instead of none at all.
+Dropping a command on a touch button creates an icon with a caption below it. Every command has an
+icon of its own — play for start, stop for stop, a star for the favorites, a calendar for the
+next timer run — and the persistent actions draw theirs in amber. The caption is the name the
+command was picked under, so a button dropped from the menu reads `pipewire — Restart`. A display
+button replaces the caption with its value, and the caption gets two lines for a name and a state.
+The layers are ordinary layers afterwards; editing or deleting them is up to the user.
 
 ## Persistent actions
 

@@ -3,7 +3,7 @@ using LoupixDeck.PluginSdk;
 namespace LoupixDeck.Plugin.Systemd;
 
 /// <summary>
-/// The names and glyphs the plugin publishes. A command name is a stable public identifier: a
+/// The names the plugin publishes. A command name is a stable public identifier: a
 /// button stores it, so renaming one would break every deck that uses it.
 /// </summary>
 internal static class SystemdCommands
@@ -59,28 +59,23 @@ internal static class SystemdCommands
     }
 
     /// <summary>
-    /// The glyph the command picker shows, mdi-cog-outline.
-    /// <para>
-    /// It sits deliberately outside the host's curated symbol set. Dropping a command on a touch
-    /// button turns the glyph the picker row shows into a symbol layer, and a row without an icon
-    /// of its own inherits one from its category — so leaving the icon empty produced a folder
-    /// symbol rather than none. A glyph the symbol set does not know resolves to no symbol at all,
-    /// which leaves the button with the caption these buttons want.
-    /// </para>
+    /// Builds the descriptor of a command that acts on the unit in its parameter. Its icon shows in
+    /// the picker and on the button; the caption is left to the host, because a menu leaf carries
+    /// the unit name there and a button must say which unit it acts on.
     /// </summary>
-    public const string PickerGlyph = "\U000F08BB";
-
-    /// <summary>Builds the descriptor of a command that acts on the unit in its parameter.</summary>
     public static CommandDescriptor UnitDescriptor(
         string commandName,
         string displayName,
         string description,
-        bool hiddenFromMenu = false) => new()
+        string glyph,
+        bool hiddenFromMenu = false,
+        string? color = null) => new()
     {
         CommandName = commandName,
         DisplayName = displayName,
         Group = Group,
-        Icon = PickerGlyph,
+        Icon = glyph,
+        ButtonLayout = SystemdButtonLayouts.IconWithCaption(glyph, caption: null, tall: true, color),
         Description = description,
         ParameterTemplate = UnitTemplate,
         Parameters = [new CommandParameter(UnitParameter, typeof(string))],
