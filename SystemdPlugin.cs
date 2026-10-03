@@ -25,7 +25,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IMenuContributor, IPluginSetti
         Id = "systemd",
         Name = "Systemd",
         Version = new Version(1, 0, 0),
-        SdkVersion = new Version(1, 24, 0),
+        SdkVersion = new Version(1, 28, 0),
         Author = "RadiatorTwo",
         Description = "Monitors and controls systemd user and system units over the native D-Bus API.",
         Icon = LoadIcon()
@@ -45,6 +45,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IMenuContributor, IPluginSetti
     public override void Initialize(IPluginHost host)
     {
         _host = host;
+        SystemdButtonLayouts.Translate = host.Tr;
 
         try
         {
@@ -90,7 +91,7 @@ public sealed class SystemdPlugin : LoupixPlugin, IMenuContributor, IPluginSetti
         new CommandGroupDescriptor
         {
             Group = SystemdCommands.Group,
-            Icon = SystemdCommands.PickerGlyph,
+            Icon = SystemdButtonLayouts.Group,
             Description = "Start, stop and watch systemd units",
             Section = CommandGroupSection.Plugins
         }

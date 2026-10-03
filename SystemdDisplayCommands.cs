@@ -57,7 +57,8 @@ internal static class SystemdDisplayCommands
             CommandName = SystemdCommands.Prefix + "UnitStatus",
             DisplayName = "Unit Status",
             Group = SystemdCommands.Group,
-            Icon = SystemdCommands.PickerGlyph,
+            Icon = SystemdButtonLayouts.Status,
+            ButtonLayout = SystemdButtonLayouts.IconWithCaption(SystemdButtonLayouts.Status, caption: null, tall: true),
             Description = "Show what the unit is doing, with its name above the state. Set the second value to 0 to leave the name out.",
             ParameterTemplate = SystemdCommands.StatusTemplate,
             Parameters =
@@ -76,6 +77,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitName",
             "Unit Name",
             "Show the name of the unit",
+            SystemdButtonLayouts.Name,
             (state, _) => state.ShortName,
             registry,
             settings);
@@ -84,6 +86,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitDescription",
             "Unit Description",
             "Show the description systemd has for the unit",
+            SystemdButtonLayouts.Description,
             (state, ctx) => state.Description.Length > 0 ? state.Description : ctx.Host.Tr(SystemdCommands.StateText(state)),
             registry,
             settings);
@@ -92,6 +95,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitSubState",
             "Unit Sub State",
             "Show the detailed state systemd reports, for example running or dead",
+            SystemdButtonLayouts.SubState,
             (state, ctx) => state.SubState.Length > 0 ? state.SubState : ctx.Host.Tr("Unknown"),
             registry,
             settings);
@@ -100,6 +104,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitLoadState",
             "Unit Load State",
             "Show whether systemd could load the unit",
+            SystemdButtonLayouts.LoadState,
             (state, ctx) => state.LoadState.Length > 0 ? state.LoadState : ctx.Host.Tr("Unknown"),
             registry,
             settings);
@@ -108,6 +113,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitFileState",
             "Unit File State",
             "Show whether the unit starts on its own, for example enabled or disabled",
+            SystemdButtonLayouts.FileState,
             (state, ctx) => state.UnitFileState.Length > 0 ? state.UnitFileState : ctx.Host.Tr("Unknown"),
             registry,
             settings);
@@ -116,6 +122,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitUptime",
             "Unit Uptime",
             "Show how long the unit has been running",
+            SystemdButtonLayouts.Uptime,
             FormatUptime,
             registry,
             settings);
@@ -124,6 +131,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitMainPid",
             "Unit Main Process",
             "Show the process id of the unit's main process",
+            SystemdButtonLayouts.MainPid,
             (state, ctx) => state.MainPid > 0
                 ? state.MainPid.ToString(CultureInfo.InvariantCulture)
                 : ctx.Host.Tr("No process"),
@@ -134,6 +142,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitResult",
             "Unit Result",
             "Show how the unit ended the last time it ran",
+            SystemdButtonLayouts.Result,
             (state, ctx) => state.Result.Length > 0 ? state.Result : ctx.Host.Tr("Unknown"),
             registry,
             settings);
@@ -142,6 +151,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "TimerNextRun",
             "Timer Next Run",
             "Show how long until a timer starts its unit next",
+            SystemdButtonLayouts.NextRun,
             FormatNextRun,
             registry,
             settings);
@@ -150,6 +160,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "TimerLastRun",
             "Timer Last Run",
             "Show how long ago a timer last started its unit",
+            SystemdButtonLayouts.LastRun,
             FormatLastRun,
             registry,
             settings);
@@ -158,6 +169,7 @@ internal static class SystemdDisplayCommands
             SystemdCommands.Prefix + "UnitDomain",
             "Unit Instance",
             "Show whether the unit belongs to the user or the system instance",
+            SystemdButtonLayouts.Instance,
             (state, ctx) => ctx.Host.Tr(UnitDomainParser.ToEnglishText(state.Id.Domain)),
             registry,
             settings);
@@ -247,11 +259,12 @@ internal static class SystemdDisplayCommands
         string commandName,
         string displayName,
         string description,
+        string glyph,
         Func<UnitState, CommandContext, string> format,
         UnitRegistry registry,
         SystemdSettings settings)
     {
-        CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(commandName, displayName, description);
+        CommandDescriptor descriptor = SystemdCommands.UnitDescriptor(commandName, displayName, description, glyph);
         return new UnitDisplayCommand(descriptor, format, registry, settings);
     }
 }
